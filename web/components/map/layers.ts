@@ -58,6 +58,37 @@ function polygonsFromGeo(
   return out;
 }
 
+// --- per-frame memoization (stable data refs so deck.gl skips re-processing) --
+type GeoBundle = LayerInput["geo"];
+let _geoKey: GeoBundle | null = null;
+let _geoPolys: { polygon: number[][]; kind: string }[] = [];
+function cachedGeoPolys(geo: GeoBundle) {
+  if (geo === _geoKey) return _geoPolys;
+  _geoKey = geo;
+  _geoPolys = [
+    ...polygonsFromGeo(geo.fairway),
+    ...polygonsFromGeo(geo.exclusion),
+    ...polygonsFromGeo(geo.anchorage),
+  ];
+  return _geoPolys;
+}
+
+type Zones = LayerInput["zones"];
+let _zonesKey: Zones | null = null;
+let _heatPts: { position: [number, number]; weight: number }[] = [];
+function cachedHeatPts(zones: Zones) {
+  if (zones === _zonesKey) return _heatPts;
+  _zonesKey = zones;
+  _heatPts = Object.values(zones)
+    .map((z) => {
+      const center = ZONE_CENTERS[z.zone];
+      if (!center) return null;
+      return { position: [center[1], center[0]] as [number, number], weight: z.count };
+    })
+    .filter(Boolean) as { position: [number, number]; weight: number }[];
+  return _heatPts;
+}
+
 export function buildLayers(input: LayerInput): Layer[] {
   const {
     vessels,
@@ -74,12 +105,10 @@ export function buildLayers(input: LayerInput): Layer[] {
 
   const layers: Layer[] = [];
 
-  // 1. Geofences — thin glowing outlines.
-  const geoPolys = [
-    ...polygonsFromGeo(geo.fairway),
-    ...polygonsFromGeo(geo.exclusion),
-    ...polygonsFromGeo(geo.anchorage),
-  ];
+  // 1. Geofences — thin glowing outlines. The geofence geometry never changes
+  //    after load, so memoize the tessellation input to a STABLE array reference;
+  //    otherwise deck.gl re-tessellates these polygons on every frame.
+  const geoPolys = cachedGeoPolys(geo);
   if (geoPolys.length) {
     layers.push(
       new PolygonLayer<{ polygon: number[][]; kind: string }>({
@@ -103,13 +132,9 @@ export function buildLayers(input: LayerInput): Layer[] {
   }
 
   // 2. Congestion heatmap from zone_stats — bloom at each chokepoint center.
-  const heatPts = Object.values(zones)
-    .map((z) => {
-      const center = ZONE_CENTERS[z.zone];
-      if (!center) return null;
-      return { position: [center[1], center[0]] as [number, number], weight: z.count };
-    })
-    .filter(Boolean) as { position: [number, number]; weight: number }[];
+  //    Memoized on the zones object (changes ~every 5s, not per frame) so the
+  //    HeatmapLayer doesn't re-run its GPU aggregation on every frame.
+  const heatPts = cachedHeatPts(zones);
   if (heatPts.length) {
     layers.push(
       new HeatmapLayer<{ position: [number, number]; weight: number }>({
