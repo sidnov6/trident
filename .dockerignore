@@ -1,0 +1,15 @@
+# Keep the build context lean and secret-free.
+.env
+.git
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+web/node_modules
+web/.next
+web/out
+web/tsconfig.tsbuildinfo
+pgdata
+*.log
+.DS_Store

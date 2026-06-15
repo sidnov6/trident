@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false,
+  // HF single-container Space: build a static export (served by FastAPI on one
+  // origin). Gated by HF_EXPORT so the normal `next start` server build is
+  // unaffected.
+  ...(process.env.HF_EXPORT
+    ? { output: "export", images: { unoptimized: true } }
+    : {}),
   transpilePackages: [
     "@deck.gl/core",
     "@deck.gl/react",

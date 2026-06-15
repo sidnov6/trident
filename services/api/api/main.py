@@ -11,6 +11,7 @@ Postgres is down, so the gateway never hard-fails on a dependency hiccup. The
 from __future__ import annotations
 
 import logging
+import os
 import time
 from contextlib import asynccontextmanager
 from typing import Any, Optional
@@ -103,9 +104,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="TRIDENT API", version="1.0.0", lifespan=lifespan)
 
+# Same-origin single-container deploys (e.g. the Hugging Face Space) serve the UI
+# from this app, so allow any origin there; localhost dev keeps the tight default.
+_cors_origins = ["*"] if os.environ.get("TRIDENT_STATIC_DIR") else ["http://localhost:3000"]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -113,6 +117,15 @@ app.add_middleware(
 
 app.include_router(router)
 app.include_router(ws_router)
+
+# Optionally serve a pre-built static frontend (Next.js export) on the SAME port,
+# so one container exposes UI + REST + WS through a single origin. Mounted LAST so
+# the API routes and /ws above always take precedence over the catch-all.
+_static_dir = os.environ.get("TRIDENT_STATIC_DIR")
+if _static_dir and os.path.isdir(_static_dir):
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="ui")
 
 
 async def _feed_health(redis: Optional[Any]) -> dict[str, Any]:

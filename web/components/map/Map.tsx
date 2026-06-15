@@ -13,7 +13,20 @@ import { getVessels, getZones, getHealth, normalizeZones } from "@/lib/api";
 import { DEFAULT_CENTER, DEFAULT_ZOOM } from "@/lib/chokepoints";
 import { darkStyle } from "./style";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000/ws";
+// WS endpoint resolution:
+//  1. explicit NEXT_PUBLIC_WS_URL wins;
+//  2. same-origin mode (NEXT_PUBLIC_API_BASE === "") → derive ws(s)://<this host>/ws
+//     so the single-container HF Space connects back to its own origin;
+//  3. otherwise localhost dev default.
+function resolveWsUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_WS_URL;
+  if (explicit) return explicit;
+  if (process.env.NEXT_PUBLIC_API_BASE === "" && typeof window !== "undefined") {
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    return `${proto}://${window.location.host}/ws`;
+  }
+  return "ws://localhost:8000/ws";
+}
 
 export default function MapView() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,7 +105,7 @@ export default function MapView() {
     });
 
     // live feed
-    const feed = new TridentFeed(WS_URL, {
+    const feed = new TridentFeed(resolveWsUrl(), {
       onStatus: (online) =>
         setHealth({
           online,

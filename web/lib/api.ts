@@ -8,10 +8,14 @@ import type {
 } from "./contracts";
 import type { ZoneStat, HealthState } from "./types";
 
-export const API_BASE =
-  process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+// Same-origin mode: when NEXT_PUBLIC_API_BASE is "" (set explicitly at build,
+// e.g. the single-container Hugging Face Space where one server serves the UI,
+// the REST API and the WS on one port), use relative URLs so the browser talks
+// back to whatever origin served the page. Otherwise fall back to localhost dev.
+const _envBase = process.env.NEXT_PUBLIC_API_BASE;
+export const API_BASE = _envBase !== undefined ? _envBase : "http://localhost:8000";
 export const REPLAY_BASE =
-  process.env.NEXT_PUBLIC_REPLAY_BASE || "http://localhost:8100";
+  process.env.NEXT_PUBLIC_REPLAY_BASE ?? "http://localhost:8100";
 
 async function getJSON<T>(url: string, fallback: T, timeoutMs = 4000): Promise<T> {
   const ctrl = new AbortController();
