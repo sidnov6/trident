@@ -117,15 +117,9 @@ app.add_middleware(
 
 app.include_router(router)
 app.include_router(ws_router)
-
-# Optionally serve a pre-built static frontend (Next.js export) on the SAME port,
-# so one container exposes UI + REST + WS through a single origin. Mounted LAST so
-# the API routes and /ws above always take precedence over the catch-all.
-_static_dir = os.environ.get("TRIDENT_STATIC_DIR")
-if _static_dir and os.path.isdir(_static_dir):
-    from fastapi.staticfiles import StaticFiles
-
-    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="ui")
+# NOTE: the optional static-UI mount is registered at the BOTTOM of this module,
+# after every @app.get/@app.websocket route (e.g. /health), so the catch-all "/"
+# never shadows an API route.
 
 
 async def _feed_health(redis: Optional[Any]) -> dict[str, Any]:
@@ -213,3 +207,13 @@ async def health() -> dict[str, Any]:
             "incidents": keys.STREAM_INCIDENTS,
         },
     }
+
+
+# ── static UI (single-container deploys) ───────────────────────────────────
+# Registered LAST, after all API + WS routes, so the catch-all "/" mount serves
+# the built frontend for page/asset requests without shadowing any API route.
+_static_dir = os.environ.get("TRIDENT_STATIC_DIR")
+if _static_dir and os.path.isdir(_static_dir):
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount("/", StaticFiles(directory=_static_dir, html=True), name="ui")
