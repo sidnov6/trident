@@ -9,38 +9,38 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Near-black ops-room surfaces
-        void: "#05070a",
-        panel: "#0a0e14",
-        panel2: "#0d121a",
-        hairline: "#1a232e",
-        ink: "#c7d2dd",
-        inkdim: "#6b7c8c",
-        inkfaint: "#3a4856",
-        // One warm accent
-        amber: "#ffb000",
-        amberdim: "#7a5500",
-        // Two alerts
-        alert: "#ff2e3e",
-        info: "#2ee6ff",
+        // Clean light dashboard surfaces
+        void: "#eef2f7",
+        panel: "#ffffff",
+        panel2: "#f5f8fc",
+        hairline: "#d8e0ea",
+        ink: "#15233a",
+        inkdim: "#5a6b80",
+        inkfaint: "#9aabbd",
+        // Primary accent — clean navy-blue
+        amber: "#1f5fbf",
+        amberdim: "#9db9e0",
+        // Alerts
+        alert: "#dc2626",
+        info: "#0e9aa7",
         // Threat ladder
-        green: "#1fd65f",
-        elevated: "#ffd400",
-        high: "#ff8a00",
-        critical: "#ff2e3e",
+        green: "#16a34a",
+        elevated: "#d97706",
+        high: "#ea580c",
+        critical: "#dc2626",
       },
       fontFamily: {
         mono: ["var(--font-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       boxShadow: {
-        glow: "0 0 12px rgba(255,176,0,0.35)",
-        glowinfo: "0 0 12px rgba(46,230,255,0.35)",
-        glowalert: "0 0 16px rgba(255,46,62,0.5)",
+        glow: "0 1px 3px rgba(20,40,70,0.10), 0 1px 2px rgba(20,40,70,0.06)",
+        glowinfo: "0 0 0 1px rgba(14,154,167,0.25)",
+        glowalert: "0 0 0 1px rgba(220,38,38,0.35)",
       },
       keyframes: {
         flicker: {
           "0%,100%": { opacity: "1" },
-          "50%": { opacity: "0.82" },
+          "50%": { opacity: "1" },
         },
         scan: {
           "0%": { transform: "translateY(-100%)" },

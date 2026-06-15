@@ -13,12 +13,12 @@ export function darkStyle(): StyleSpecification {
     sources: {
       basemap: {
         type: "raster",
-        // dark_all carries country borders, place + sea labels so the world
-        // view reads as a real map; OpenSeaMap seamarks layer on top at zoom 9+.
+        // light_all (CARTO Positron) carries country borders, place + sea labels
+        // so the world view reads as a clean, legible light map.
         tiles: [
-          "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-          "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-          "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+          "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+          "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+          "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
         ],
         tileSize: 256,
         attribution: "© OpenStreetMap © CARTO",
@@ -28,21 +28,18 @@ export function darkStyle(): StyleSpecification {
       {
         id: "void",
         type: "background",
-        paint: { "background-color": "#05070a" },
+        paint: { "background-color": "#eef2f7" },
       },
       {
         id: "basemap",
         type: "raster",
         source: "basemap",
-        // Keep it dark but LEGIBLE — coastlines, land and the canal must read
-        // clearly. The previous heavy dimming (brightness-max 0.55 + hue-rotate)
-        // crushed the map into a near-black void.
+        // Clean, legible light basemap. A slight desaturation keeps it calm
+        // under the data layers without crushing contrast.
         paint: {
           "raster-opacity": 1.0,
-          "raster-brightness-min": 0.05,
-          "raster-brightness-max": 1.0,
-          "raster-contrast": 0.1,
-          "raster-saturation": -0.2,
+          "raster-saturation": -0.1,
+          "raster-contrast": 0.0,
         },
       },
     ],

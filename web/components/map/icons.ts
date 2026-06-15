@@ -29,9 +29,10 @@ export function vesselArrowDataURI(): string {
 
   ctx.fillStyle = "rgba(255,255,255,1)";
   ctx.fill();
-  // thin dark keel line for crispness on bright tint
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(0,0,0,0.55)";
+  // dark outline so the colored arrow reads against a LIGHT basemap
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 3; // ~1.5px visual at the rendered icon size
+  ctx.strokeStyle = "rgba(20,35,60,0.9)";
   ctx.stroke();
 
   cached = c.toDataURL("image/png");

@@ -2,24 +2,23 @@ import { SHIP_BUCKET, type ThreatLevel } from "./contracts";
 
 export type RGBA = [number, number, number, number];
 
-// Ship-type bucket → glow colour. Tanker amber, cargo cyan,
-// passenger green, everything else cool grey.
+// Ship-type bucket → marker colour, saturated/dark enough to read on a LIGHT map.
 export function shipColor(bucket: number): RGBA {
   switch (bucket) {
     case SHIP_BUCKET.TANKER:
-      return [255, 176, 0, 255]; // amber
+      return [212, 56, 13, 255]; // strong orange-red
     case SHIP_BUCKET.CARGO:
-      return [46, 230, 255, 255]; // cyan
+      return [29, 78, 216, 255]; // blue
     case SHIP_BUCKET.PASSENGER:
-      return [31, 214, 95, 255]; // green
+      return [22, 163, 74, 255]; // green
     case SHIP_BUCKET.HIGH_SPEED:
-      return [120, 230, 255, 255];
+      return [124, 58, 237, 255]; // purple
     case SHIP_BUCKET.FISHING:
-      return [150, 170, 190, 255];
+      return [8, 145, 178, 255]; // teal
     case SHIP_BUCKET.TUG_SPECIAL:
-      return [200, 160, 120, 255];
+      return [180, 83, 9, 255]; // amber-brown
     default:
-      return [120, 140, 160, 255]; // other grey
+      return [71, 85, 105, 255]; // slate
   }
 }
 
@@ -35,10 +34,10 @@ export const SHIP_LABEL: Record<number, string> = {
 
 // Threat ladder (NORAD-style)
 export const THREAT_HEX: Record<ThreatLevel, string> = {
-  GREEN: "#1fd65f",
-  ELEVATED: "#ffd400",
-  HIGH: "#ff8a00",
-  CRITICAL: "#ff2e3e",
+  GREEN: "#16a34a",
+  ELEVATED: "#d97706",
+  HIGH: "#ea580c",
+  CRITICAL: "#dc2626",
 };
 
 export const THREAT_ORDER: ThreatLevel[] = [
@@ -48,15 +47,15 @@ export const THREAT_ORDER: ThreatLevel[] = [
   "CRITICAL",
 ];
 
-// Severity 0..1 → hex on the cool→hot ramp
+// Severity 0..1 → hex on the cool→hot ramp (light-palette)
 export function severityHex(sev: number): string {
-  if (sev >= 0.8) return "#ff2e3e";
-  if (sev >= 0.6) return "#ff8a00";
-  if (sev >= 0.4) return "#ffd400";
-  if (sev >= 0.2) return "#2ee6ff";
-  return "#6b7c8c";
+  if (sev >= 0.8) return "#dc2626";
+  if (sev >= 0.6) return "#ea580c";
+  if (sev >= 0.4) return "#d97706";
+  if (sev >= 0.2) return "#0e9aa7";
+  return "#5a6b80";
 }
 
-export const ALERT_RED: RGBA = [255, 46, 62, 255];
-export const INFO_CYAN: RGBA = [46, 230, 255, 255];
-export const AMBER: RGBA = [255, 176, 0, 255];
+export const ALERT_RED: RGBA = [220, 38, 38, 255];
+export const INFO_CYAN: RGBA = [14, 154, 167, 255];
+export const AMBER: RGBA = [31, 95, 191, 255];

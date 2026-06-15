@@ -3,19 +3,21 @@
 @tailwind utilities;
 
 :root {
-  --void: #05070a;
-  --panel: #0a0e14;
-  --hairline: #1a232e;
-  --ink: #c7d2dd;
-  --inkdim: #6b7c8c;
-  --inkfaint: #3a4856;
-  --amber: #ffb000;
-  --alert: #ff2e3e;
-  --info: #2ee6ff;
-  --green: #1fd65f;
-  --elevated: #ffd400;
-  --high: #ff8a00;
-  --critical: #ff2e3e;
+  --void: #eef2f7;
+  --panel: #ffffff;
+  --panel2: #f5f8fc;
+  --hairline: #d8e0ea;
+  --ink: #15233a;
+  --inkdim: #5a6b80;
+  --inkfaint: #9aabbd;
+  --amber: #1f5fbf;
+  --amberdim: #9db9e0;
+  --alert: #dc2626;
+  --info: #0e9aa7;
+  --green: #16a34a;
+  --elevated: #d97706;
+  --high: #ea580c;
+  --critical: #dc2626;
 }
 
 html,
@@ -38,49 +40,30 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--void);
+  background: var(--panel2);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--hairline);
   border-radius: 0;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #25323f;
+  background: #bccadb;
 }
 
-/* ── ops-room overlays ─────────────────────────────────────────────────── */
+/* ── ops-room overlays (neutralized for the clean light theme) ─────────── */
 
-/* Faint CRT scanlines drifting down the map */
+/* CRT scanlines removed — render nothing on the light dashboard. */
 .scanlines {
-  background: repeating-linear-gradient(
-    to bottom,
-    rgba(0, 0, 0, 0) 0px,
-    rgba(0, 0, 0, 0) 2px,
-    rgba(0, 0, 0, 0.16) 3px,
-    rgba(0, 0, 0, 0) 4px
-  );
-  mix-blend-mode: multiply;
-  opacity: 0.5;
+  background: none;
+  opacity: 0;
 }
 .scanlines::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    to bottom,
-    rgba(46, 230, 255, 0.05),
-    rgba(46, 230, 255, 0) 18%
-  );
-  animation: scan 7s linear infinite;
+  content: none;
 }
 
-/* Darkened corners for the CIC focus */
+/* Vignette removed — no darkened corners on light. */
 .vignette {
-  background: radial-gradient(
-    ellipse at center,
-    rgba(0, 0, 0, 0) 45%,
-    rgba(0, 0, 0, 0.55) 100%
-  );
+  background: none;
 }
 
 @keyframes scan {

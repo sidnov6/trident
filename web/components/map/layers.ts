@@ -32,9 +32,9 @@ export interface LayerInput {
 }
 
 const GEO_OUTLINE: Record<string, [number, number, number]> = {
-  fairway: [46, 230, 255],
-  exclusion: [255, 46, 62],
-  anchorage: [255, 176, 0],
+  fairway: [14, 154, 167], // teal
+  exclusion: [220, 38, 38], // red
+  anchorage: [31, 95, 191], // navy
 };
 
 function polygonsFromGeo(
@@ -94,9 +94,9 @@ export function buildLayers(input: LayerInput): Layer[] {
         },
         getFillColor: (d) => {
           const c = GEO_OUTLINE[d.kind] ?? [120, 140, 160];
-          return [c[0], c[1], c[2], 18];
+          return [c[0], c[1], c[2], 12];
         },
-        getLineWidth: 2,
+        getLineWidth: 1.5,
         lineWidthUnits: "pixels",
       })
     );
@@ -121,12 +121,11 @@ export function buildLayers(input: LayerInput): Layer[] {
         intensity: 1,
         threshold: 0.05,
         colorRange: [
-          [0, 40, 60, 0],
-          [0, 80, 110, 80],
-          [46, 160, 200, 140],
-          [255, 176, 0, 180],
-          [255, 138, 0, 210],
-          [255, 46, 62, 240],
+          [255, 237, 160, 0],
+          [254, 217, 118, 180],
+          [253, 141, 60, 220],
+          [240, 59, 32, 240],
+          [189, 0, 38, 255],
         ],
       })
     );
@@ -140,8 +139,8 @@ export function buildLayers(input: LayerInput): Layer[] {
         data: trails,
         getPath: (d) => d.path,
         getTimestamps: (d) => d.timestamps,
-        getColor: [46, 230, 255],
-        opacity: 0.55,
+        getColor: [31, 95, 191], // medium navy — a dark translucent wake reads on white
+        opacity: 0.5,
         widthMinPixels: 1.5,
         rounded: true,
         fadeTrail: true,
@@ -169,7 +168,7 @@ export function buildLayers(input: LayerInput): Layer[] {
         getLineColor: (d) => {
           const age = (nowMs - d.born) / PING_TTL;
           const a = Math.max(0, 1 - age) * 230;
-          return [255, 46, 62, a];
+          return [220, 38, 38, a];
         },
         lineWidthMinPixels: 2,
         updateTriggers: { getRadius: nowMs, getLineColor: nowMs },
@@ -197,8 +196,8 @@ export function buildLayers(input: LayerInput): Layer[] {
         data: arcs,
         getSourcePosition: (d) => d.from,
         getTargetPosition: (d) => d.to,
-        getSourceColor: [255, 46, 62, 200],
-        getTargetColor: [255, 176, 0, 200],
+        getSourceColor: [220, 38, 38, 220],
+        getTargetColor: [31, 95, 191, 220],
         getWidth: (d) => 1.5 + d.sev * 3,
         getHeight: 0.4,
       })
@@ -222,7 +221,8 @@ export function buildLayers(input: LayerInput): Layer[] {
       getColor: (d) => {
         if (d.st & STATUS_BIT.DARK) return ALERT_RED;
         const c = shipColor(d.t);
-        return d.m === selectedMmsi ? [255, 255, 255, 255] : c;
+        // selected → navy accent so it reads against the light map
+        return d.m === selectedMmsi ? [31, 95, 191, 255] : c;
       },
       sizeUnits: "pixels",
       billboard: true,
