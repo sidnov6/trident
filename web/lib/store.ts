@@ -22,6 +22,9 @@ interface UIState {
   health: HealthState;
   vesselCount: number;
   signalCounts: Record<string, number>;
+  // live ship-type histogram for the current viewport (index = ShipTypeBucket)
+  viewportBuckets: number[];
+  viewportBbox: [number, number, number, number] | null; // minLat,minLon,maxLat,maxLon
 
   // actions
   setSelectedZone: (z: string) => void;
@@ -36,6 +39,8 @@ interface UIState {
   setZones: (zs: ZoneStat[]) => void;
   setHealth: (h: HealthState) => void;
   setVesselCount: (n: number) => void;
+  setViewportBuckets: (b: number[]) => void;
+  setViewportBbox: (b: [number, number, number, number]) => void;
 }
 
 export const useStore = create<UIState>((set) => ({
@@ -51,6 +56,8 @@ export const useStore = create<UIState>((set) => ({
   health: { online: false, msgPerSec: 0, lastMsgMs: 0 },
   vesselCount: 0,
   signalCounts: {},
+  viewportBuckets: [0, 0, 0, 0, 0, 0, 0],
+  viewportBbox: null,
 
   setSelectedZone: (z) => set({ selectedZone: z }),
   selectIncident: (id) => set({ selectedIncidentId: id }),
@@ -84,4 +91,6 @@ export const useStore = create<UIState>((set) => ({
     }),
   setHealth: (h) => set({ health: h }),
   setVesselCount: (n) => set({ vesselCount: n }),
+  setViewportBuckets: (b) => set({ viewportBuckets: b }),
+  setViewportBbox: (b) => set({ viewportBbox: b }),
 }));

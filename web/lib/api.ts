@@ -53,6 +53,22 @@ export function getIncident(id: string): Promise<Incident | null> {
   return getJSON<Incident | null>(`${API_BASE}/incidents/${id}`, null);
 }
 
+export interface RegionAnalysis {
+  counts: Record<string, number>;
+  total: number;
+  analysis: string;
+  model?: string;
+}
+
+// LLM deep-dive: what kinds of ships are moving in this region + a narrative.
+// bbox = [minLat, minLon, maxLat, maxLon].
+export function analyzeRegion(
+  bbox: [number, number, number, number]
+): Promise<RegionAnalysis | null> {
+  const q = `?bbox=${bbox.join(",")}`;
+  return getJSON<RegionAnalysis | null>(`${API_BASE}/region/analyze${q}`, null, 30000);
+}
+
 export function getSignals(): Promise<SignalLite[]> {
   return getJSON<SignalLite[]>(`${API_BASE}/signals`, []);
 }

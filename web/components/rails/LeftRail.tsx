@@ -4,6 +4,7 @@ import { useStore } from "@/lib/store";
 import { CHOKEPOINTS } from "@/lib/chokepoints";
 import { THREAT_HEX } from "@/lib/colors";
 import type { ThreatLevel, SignalType } from "@/lib/contracts";
+import RegionPanel from "./RegionPanel";
 
 const SIGNAL_TYPES: SignalType[] = [
   "DARK_VESSEL",
@@ -97,6 +98,10 @@ export default function LeftRail() {
             </div>
           );
         })}
+      </div>
+
+      <div className="mt-auto">
+        <RegionPanel />
       </div>
     </aside>
   );

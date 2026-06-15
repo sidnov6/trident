@@ -9,6 +9,7 @@ dependencies = [
     "redis>=5",
     "asyncpg>=0.29",
     "pydantic>=2.6",
+    "httpx>=0.27",   # Regional Analyst -> Groq chat call (on demand)
     # The three shared spine packages. They live under packages/ at the repo
     # root and are installed editable alongside this service:
     #   pip install -e packages/contracts -e packages/common -e packages/geo -e services/api

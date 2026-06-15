@@ -116,7 +116,16 @@ export default function MapView() {
           lastMsgMs: Date.now(),
         }),
       onMsg: () => msgWindow.current.push(Date.now()),
-      onIncident: (i) => pushIncident(i),
+      onIncident: (i) => {
+        pushIncident(i);
+        // Auto-pinpoint: fly to the flagged vessel and open its case so the
+        // analyst sees exactly what the agents flagged, where.
+        const st = useStore.getState();
+        if (i.position && i.position.length === 2) {
+          st.requestFlyTo(i.position[1], i.position[0], 8.5);
+        }
+        st.selectIncident(i.id);
+      },
       onSignal: (s) => pushSignal(s),
       onZoneStats: (z) => setZone(z),
     });
@@ -127,7 +136,11 @@ export default function MapView() {
     // (the global feed has tens of thousands of vessels). Fires on every move.
     const sendViewport = () => {
       const b = map.getBounds();
-      feed.sendViewport([b.getSouth(), b.getWest(), b.getNorth(), b.getEast()]);
+      const bbox: [number, number, number, number] = [
+        b.getSouth(), b.getWest(), b.getNorth(), b.getEast(),
+      ];
+      feed.sendViewport(bbox);
+      useStore.getState().setViewportBbox(bbox);
     };
     map.on("moveend", sendViewport);
     map.once("idle", sendViewport); // initial camera
@@ -155,6 +168,12 @@ export default function MapView() {
         msgPerSec: measured || h.msgPerSec,
         lastMsgMs: now,
       });
+      // Live ship-type histogram for whatever's in view (deterministic, no LLM).
+      const buckets = [0, 0, 0, 0, 0, 0, 0];
+      for (const v of feed.getRenderVessels()) {
+        if (v.t >= 0 && v.t < buckets.length) buckets[v.t] += 1;
+      }
+      useStore.getState().setViewportBuckets(buckets);
     }, 1000);
 
     return () => {

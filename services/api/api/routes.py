@@ -395,3 +395,48 @@ async def get_signals(
         except Exception:
             continue
     return out
+
+
+# ── regional traffic analysis ──────────────────────────────────────────────
+def _parse_bbox(bbox: str) -> tuple[float, float, float, float]:
+    """'minLat,minLon,maxLat,maxLon' -> tuple. Raises ValueError on bad input."""
+    parts = [float(x) for x in bbox.split(",")]
+    if len(parts) != 4:
+        raise ValueError("bbox must be minLat,minLon,maxLat,maxLon")
+    return (parts[0], parts[1], parts[2], parts[3])
+
+
+@router.get("/region/summary")
+async def region_summary(
+    request: Request,
+    bbox: str = Query(..., description="minLat,minLon,maxLat,maxLon"),
+) -> dict[str, Any]:
+    """Deterministic ship-type composition for the viewport (no LLM)."""
+    from . import region as region_mod
+
+    try:
+        box = _parse_bbox(bbox)
+    except ValueError:
+        return {"counts": {}, "total": 0, "error": "bad bbox"}
+    states = await _reader(request).viewport_vessels(box, cap=8000)
+    counts = region_mod.ship_type_counts(states)
+    return {"counts": counts, "total": len(states), "bbox": list(box)}
+
+
+@router.get("/region/analyze")
+async def region_analyze(
+    request: Request,
+    bbox: str = Query(..., description="minLat,minLon,maxLat,maxLon"),
+) -> dict[str, Any]:
+    """Ship-type counts + an on-demand Groq narrative of the region's traffic."""
+    from . import region as region_mod
+
+    try:
+        box = _parse_bbox(bbox)
+    except ValueError:
+        return {"counts": {}, "total": 0, "analysis": "", "error": "bad bbox"}
+    states = await _reader(request).viewport_vessels(box, cap=8000)
+    counts = region_mod.ship_type_counts(states)
+    total = len(states)
+    result = await region_mod.analyze_region(box, counts, total)
+    return {"counts": counts, "total": total, "bbox": list(box), **result}
