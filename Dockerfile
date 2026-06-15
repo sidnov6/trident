@@ -26,7 +26,10 @@ ENV HF_EXPORT=1 \
 RUN npm run build
 
 # ---- stage 2: runtime with embedded Postgres + Redis ---------------------
-FROM python:3.12-slim
+# Pin to bookworm: the PGDG + TimescaleDB apt repos below target Debian 12
+# (libicu72 / libldap-2.5 / libgdal32). Plain python:3.12-slim now resolves to
+# trixie (Debian 13), whose newer libs make those PG packages uninstallable.
+FROM python:3.12-slim-bookworm
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 DEBIAN_FRONTEND=noninteractive
 
 # Base tools + PGDG (Postgres 16 + PostGIS) + TimescaleDB apt repos
