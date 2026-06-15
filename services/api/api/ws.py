@@ -57,7 +57,7 @@ log = logging.getLogger("api.ws")
 ws_router = APIRouter()
 
 # --- cadences --------------------------------------------------------------
-VESSEL_DELTA_HZ = 1.5            # vessel_delta tick rate
+VESSEL_DELTA_HZ = 1.0            # vessel_delta tick rate
 ZONE_STATS_INTERVAL_S = 5.0     # zone_stats timer
 STREAM_BLOCK_MS = 2000          # XREAD block window for the shared tailers
 

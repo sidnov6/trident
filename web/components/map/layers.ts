@@ -215,38 +215,68 @@ export function buildLayers(input: LayerInput): Layer[] {
     );
   }
 
-  // 6. Vessels — arrow icons rotated to cog, tinted by ship type.
-  const iconSize = Math.max(14, Math.min(30, 8 + zoom * 1.8));
-  layers.push(
-    new IconLayer<RenderVessel>({
-      id: "vessels",
-      data: vessels,
-      pickable: true,
-      iconAtlas: vesselArrowDataURI(),
-      iconMapping: vesselIconMapping(),
-      getIcon: () => "arrow",
-      getPosition: (d) => [d.rLon, d.rLat],
-      getAngle: (d) => -d.c, // deck rotates CCW; cog is CW from north
-      getSize: (d) =>
-        d.m === selectedMmsi ? iconSize * 1.6 : iconSize,
-      getColor: (d) => {
-        if (d.st & STATUS_BIT.DARK) return ALERT_RED;
-        const c = shipColor(d.t);
-        // selected → navy accent so it reads against the light map
-        return d.m === selectedMmsi ? [31, 95, 191, 255] : c;
-      },
-      sizeUnits: "pixels",
-      billboard: true,
-      onClick: (info) => {
-        const d = info.object as RenderVessel | undefined;
-        if (d) onVesselClick(d.m);
-      },
-      updateTriggers: {
-        getColor: selectedMmsi,
-        getSize: [selectedMmsi, iconSize],
-      },
+  // 6. Vessels. Two representations for performance:
+  //    * MANY vessels (global view) → a lightweight GPU ScatterplotLayer (dots).
+  //      Rendering thousands of rotated, textured IconLayer glyphs every frame is
+  //      what makes the page hang; coloured dots are effectively free.
+  //    * FEW vessels (drilled in) → the arrow IconLayer rotated to course.
+  const manyVessels = vessels.length > 600;
+  if (manyVessels) {
+    layers.push(
+      new ScatterplotLayer<RenderVessel>({
+        id: "vessels",
+        data: vessels,
+        pickable: true,
+        getPosition: (d) => [d.rLon, d.rLat],
+        getFillColor: (d) =>
+          d.st & STATUS_BIT.DARK
+            ? ALERT_RED
+            : d.m === selectedMmsi
+            ? [31, 95, 191, 255]
+            : shipColor(d.t),
+        getRadius: (d) => (d.m === selectedMmsi ? 5 : 2.4),
+        radiusUnits: "pixels",
+        radiusMinPixels: 1.6,
+        radiusMaxPixels: 6,
+        stroked: false,
+        onClick: (info) => {
+          const d = info.object as RenderVessel | undefined;
+          if (d) onVesselClick(d.m);
+        },
+        updateTriggers: { getFillColor: selectedMmsi, getRadius: selectedMmsi },
       })
-  );
+    );
+  } else {
+    const iconSize = Math.max(14, Math.min(30, 8 + zoom * 1.8));
+    layers.push(
+      new IconLayer<RenderVessel>({
+        id: "vessels",
+        data: vessels,
+        pickable: true,
+        iconAtlas: vesselArrowDataURI(),
+        iconMapping: vesselIconMapping(),
+        getIcon: () => "arrow",
+        getPosition: (d) => [d.rLon, d.rLat],
+        getAngle: (d) => -d.c, // deck rotates CCW; cog is CW from north
+        getSize: (d) => (d.m === selectedMmsi ? iconSize * 1.6 : iconSize),
+        getColor: (d) => {
+          if (d.st & STATUS_BIT.DARK) return ALERT_RED;
+          const c = shipColor(d.t);
+          return d.m === selectedMmsi ? [31, 95, 191, 255] : c;
+        },
+        sizeUnits: "pixels",
+        billboard: true,
+        onClick: (info) => {
+          const d = info.object as RenderVessel | undefined;
+          if (d) onVesselClick(d.m);
+        },
+        updateTriggers: {
+          getColor: selectedMmsi,
+          getSize: [selectedMmsi, iconSize],
+        },
+      })
+    );
+  }
 
   return layers;
 }

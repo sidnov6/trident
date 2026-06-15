@@ -178,7 +178,7 @@ class StateReader:
 
     # -- viewport (bbox) ---------------------------------------------------
     async def viewport_vessels(
-        self, bbox: tuple[float, float, float, float], *, cap: int = 4000
+        self, bbox: tuple[float, float, float, float], *, cap: int = 3000
     ) -> list[VesselState]:
         """Vessels intersecting ``bbox = (min_lat, min_lon, max_lat, max_lon)``.
 
@@ -285,7 +285,7 @@ class StateReader:
         return [to_lite(s, now=now, watchlist=watch) for s in states]
 
     async def viewport_lite(
-        self, bbox: tuple[float, float, float, float], *, now: float, cap: int = 4000
+        self, bbox: tuple[float, float, float, float], *, now: float, cap: int = 3000
     ) -> list[VesselLite]:
         """VesselLite for every ship in the viewport ``bbox`` (the global hot path)."""
         watch = await self.watchlist()

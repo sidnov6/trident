@@ -191,15 +191,21 @@ export class TridentFeed {
     };
     this.vessels.set(v.m, rv);
 
-    // Append to trail history (truth position).
-    let tr = this.trails.get(v.m);
-    if (!tr) {
-      tr = [];
-      this.trails.set(v.m, tr);
-    }
-    tr.push({ lon: v.lo, lat: v.la, t: now });
-    while (tr.length > TRAIL_MAX || (tr.length > 1 && now - tr[0].t > TRAIL_MS)) {
-      tr.shift();
+    // Append to trail history (truth position) — but ONLY when the set is small
+    // (drilled in). Trails only render when few vessels are shown, and keeping
+    // thousands of trail arrays churns memory/GC at the global scale.
+    if (this.vessels.size <= 600) {
+      let tr = this.trails.get(v.m);
+      if (!tr) {
+        tr = [];
+        this.trails.set(v.m, tr);
+      }
+      tr.push({ lon: v.lo, lat: v.la, t: now });
+      while (tr.length > TRAIL_MAX || (tr.length > 1 && now - tr[0].t > TRAIL_MS)) {
+        tr.shift();
+      }
+    } else if (this.trails.size) {
+      this.trails.clear(); // shed trail memory once we zoom back out
     }
 
     // Dark bit flipping on → ping.

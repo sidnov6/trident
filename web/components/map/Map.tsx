@@ -168,12 +168,17 @@ export default function MapView() {
         msgPerSec: measured || h.msgPerSec,
         lastMsgMs: now,
       });
-      // Live ship-type histogram for whatever's in view (deterministic, no LLM).
+      // Live ship-type histogram + vessel count for whatever's in view
+      // (deterministic, no LLM). Done here at 1 Hz — NOT in the render loop — so
+      // the rails don't re-render on every animation frame.
+      const rv = feed.getRenderVessels();
       const buckets = [0, 0, 0, 0, 0, 0, 0];
-      for (const v of feed.getRenderVessels()) {
+      for (const v of rv) {
         if (v.t >= 0 && v.t < buckets.length) buckets[v.t] += 1;
       }
-      useStore.getState().setViewportBuckets(buckets);
+      const store = useStore.getState();
+      store.setViewportBuckets(buckets);
+      store.setVesselCount(rv.length);
     }, 1000);
 
     return () => {
@@ -206,33 +211,40 @@ export default function MapView() {
   useEffect(() => {
     if (!ready) return;
     let raf = 0;
-    const tick = () => {
+    let lastDraw = 0;
+    const DRAW_MS = 33; // ~30fps — plenty smooth, half the deck.gl work of 60fps
+    // Read live data from the store INSIDE the loop (via getState) so the loop is
+    // created once and never torn down/recreated as incidents/zones stream in.
+    const tick = (t: number) => {
+      raf = requestAnimationFrame(tick);
+      if (t - lastDraw < DRAW_MS) return;
+      lastDraw = t;
       const feed = feedRef.current;
       const overlay = overlayRef.current;
-      if (feed && overlay) {
-        const now = Date.now();
-        const vessels = feed.getRenderVessels();
-        const selInc = incidents.find((i) => i.id === selectedIncidentId);
-        const layers = buildLayers({
-          vessels,
-          trails: feed.getTrails(),
-          pings: feed.getPings(),
-          zones,
-          incidents,
-          geo: geoRef.current,
-          nowMs: now,
-          zoom: zoomRef.current,
-          selectedMmsi: selInc ? selInc.mmsi : null,
-          onVesselClick: (mmsi) => openDossier(mmsi),
-        });
-        overlay.setProps({ layers });
-        setVesselCount(vessels.length);
-      }
-      raf = requestAnimationFrame(tick);
+      if (!feed || !overlay) return;
+      const st = useStore.getState();
+      const vessels = feed.getRenderVessels();
+      // Trails are expensive and only render when drilled in (few vessels); skip
+      // building them entirely at the global scale.
+      const manyVessels = vessels.length > 600;
+      const selInc = st.incidents.find((i) => i.id === st.selectedIncidentId);
+      const layers = buildLayers({
+        vessels,
+        trails: manyVessels ? [] : feed.getTrails(),
+        pings: feed.getPings(),
+        zones: st.zones,
+        incidents: st.incidents,
+        geo: geoRef.current,
+        nowMs: Date.now(),
+        zoom: zoomRef.current,
+        selectedMmsi: selInc ? selInc.mmsi : null,
+        onVesselClick: (mmsi) => openDossier(mmsi),
+      });
+      overlay.setProps({ layers });
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [ready, incidents, zones, selectedIncidentId, openDossier, setVesselCount]);
+  }, [ready, openDossier]);
 
   const online = useStore((s) => s.health.online);
 
