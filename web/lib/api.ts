@@ -8,14 +8,19 @@ import type {
 } from "./contracts";
 import type { ZoneStat, HealthState } from "./types";
 
-// Same-origin mode: when NEXT_PUBLIC_API_BASE is "" (set explicitly at build,
-// e.g. the single-container Hugging Face Space where one server serves the UI,
-// the REST API and the WS on one port), use relative URLs so the browser talks
-// back to whatever origin served the page. Otherwise fall back to localhost dev.
+// Same-origin mode: the single-container deploy (e.g. the Hugging Face Space)
+// serves the UI, REST API and WS from one origin. We signal that with a NON-EMPTY
+// sentinel — an empty-string NEXT_PUBLIC_* var is NOT inlined by Next at build
+// time (it stays undefined at runtime), so "" cannot be used as the marker.
+// When the sentinel is set, API_BASE/REPLAY_BASE become "" → relative URLs that
+// hit whatever origin served the page. Otherwise: localhost dev defaults.
+export const SAME_ORIGIN = "__SAME_ORIGIN__";
 const _envBase = process.env.NEXT_PUBLIC_API_BASE;
-export const API_BASE = _envBase !== undefined ? _envBase : "http://localhost:8000";
+export const API_BASE =
+  _envBase === SAME_ORIGIN ? "" : _envBase || "http://localhost:8000";
+const _envReplay = process.env.NEXT_PUBLIC_REPLAY_BASE;
 export const REPLAY_BASE =
-  process.env.NEXT_PUBLIC_REPLAY_BASE ?? "http://localhost:8100";
+  _envReplay === SAME_ORIGIN ? "" : _envReplay || "http://localhost:8100";
 
 async function getJSON<T>(url: string, fallback: T, timeoutMs = 4000): Promise<T> {
   const ctrl = new AbortController();

@@ -19,10 +19,12 @@ WORKDIR /web
 COPY web/package.json web/package-lock.json* ./
 RUN npm ci || npm install
 COPY web/ ./
+# Non-empty sentinel → the app resolves same-origin URLs at runtime (one origin
+# serves UI + REST + WS). Empty-string NEXT_PUBLIC_* vars are NOT inlined by Next.
 ENV HF_EXPORT=1 \
-    NEXT_PUBLIC_API_BASE="" \
-    NEXT_PUBLIC_REPLAY_BASE="" \
-    NEXT_PUBLIC_WS_URL=""
+    NEXT_PUBLIC_API_BASE=__SAME_ORIGIN__ \
+    NEXT_PUBLIC_REPLAY_BASE=__SAME_ORIGIN__ \
+    NEXT_PUBLIC_WS_URL=__SAME_ORIGIN__
 RUN npm run build
 
 # ---- stage 2: runtime with embedded Postgres + Redis ---------------------

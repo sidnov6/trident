@@ -19,9 +19,12 @@ import { darkStyle } from "./style";
 //     so the single-container HF Space connects back to its own origin;
 //  3. otherwise localhost dev default.
 function resolveWsUrl(): string {
+  const SAME = "__SAME_ORIGIN__"; // non-empty sentinel (empty env vars aren't inlined)
   const explicit = process.env.NEXT_PUBLIC_WS_URL;
-  if (explicit) return explicit;
-  if (process.env.NEXT_PUBLIC_API_BASE === "" && typeof window !== "undefined") {
+  if (explicit && explicit !== SAME) return explicit;
+  const sameOrigin =
+    process.env.NEXT_PUBLIC_API_BASE === SAME || explicit === SAME;
+  if (sameOrigin && typeof window !== "undefined") {
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
     return `${proto}://${window.location.host}/ws`;
   }
