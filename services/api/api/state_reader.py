@@ -154,13 +154,23 @@ class StateReader:
         return states
 
     async def _states_for_mmsis(self, mmsis: list[int]) -> list[VesselState]:
-        """HGETALL a specific set of MMSIs (used by the GEO viewport path)."""
+        """HGETALL a set of MMSIs in ONE pipelined round-trip.
+
+        At global scale a viewport can hold thousands of MMSIs; issuing a separate
+        awaited HGETALL each would block the event loop and starve the WS writer.
+        Pipelining collapses them into a single Redis round-trip.
+        """
         states: list[VesselState] = []
-        for mmsi in mmsis:
-            try:
-                raw = await self._redis.hgetall(keys.vessel_key(mmsi))
-            except Exception:
-                continue
+        if not mmsis:
+            return states
+        try:
+            pipe = self._redis.pipeline(transaction=False)
+            for mmsi in mmsis:
+                pipe.hgetall(keys.vessel_key(mmsi))
+            raws = await pipe.execute()
+        except Exception:
+            return states
+        for raw in raws:
             st = state_from_hash(raw)
             if st is not None:
                 states.append(st)
@@ -168,7 +178,7 @@ class StateReader:
 
     # -- viewport (bbox) ---------------------------------------------------
     async def viewport_vessels(
-        self, bbox: tuple[float, float, float, float], *, cap: int = 6000
+        self, bbox: tuple[float, float, float, float], *, cap: int = 4000
     ) -> list[VesselState]:
         """Vessels intersecting ``bbox = (min_lat, min_lon, max_lat, max_lon)``.
 
@@ -275,7 +285,7 @@ class StateReader:
         return [to_lite(s, now=now, watchlist=watch) for s in states]
 
     async def viewport_lite(
-        self, bbox: tuple[float, float, float, float], *, now: float, cap: int = 6000
+        self, bbox: tuple[float, float, float, float], *, now: float, cap: int = 4000
     ) -> list[VesselLite]:
         """VesselLite for every ship in the viewport ``bbox`` (the global hot path)."""
         watch = await self.watchlist()

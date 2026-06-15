@@ -131,18 +131,29 @@ export function buildLayers(input: LayerInput): Layer[] {
     );
   }
 
-  // 3. Trails — animated fading wake.
-  if (trails.length) {
+  // 3. Trails — animated fading wake. Only when drilled in (few vessels): at a
+  //    global view with thousands of ships, trails are visual mush AND the
+  //    TripsLayer's shared buffer overflows ("offset out of bounds"), which would
+  //    abort the WHOLE deck render and blank the map. Cap + sanitize defensively.
+  const TRAIL_VESSEL_MAX = 500;
+  const safeTrails =
+    vessels.length <= TRAIL_VESSEL_MAX
+      ? trails
+          .filter((t) => t.path.length >= 2 && t.path.length === t.timestamps.length)
+          .slice(0, TRAIL_VESSEL_MAX)
+      : [];
+  if (safeTrails.length) {
     layers.push(
-      new TripsLayer<(typeof trails)[number]>({
+      new TripsLayer<(typeof safeTrails)[number]>({
         id: "trails",
-        data: trails,
+        data: safeTrails,
         getPath: (d) => d.path,
         getTimestamps: (d) => d.timestamps,
         getColor: [31, 95, 191], // medium navy — a dark translucent wake reads on white
         opacity: 0.5,
         widthMinPixels: 1.5,
-        rounded: true,
+        jointRounded: true,
+        capRounded: true,
         fadeTrail: true,
         trailLength: 120_000,
         currentTime: nowMs,
