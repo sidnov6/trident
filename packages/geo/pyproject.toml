@@ -1,0 +1,16 @@
+[project]
+name = "trident-geo"
+version = "1.0.0"
+description = "Chokepoint geometry, zones, flag-state and geofencing helpers for TRIDENT"
+requires-python = ">=3.12"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["trident_geo"]
+
+[tool.setuptools.package-data]
+trident_geo = ["zones/*.geojson"]

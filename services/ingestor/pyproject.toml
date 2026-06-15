@@ -1,0 +1,29 @@
+[project]
+name = "trident-ingestor"
+version = "1.0.0"
+description = "TRIDENT ingestor — AIS ingest, Redis world-state, deterministic detectors (Tier 0-2)."
+requires-python = ">=3.12"
+dependencies = [
+    "redis>=5",
+    "websockets>=12",
+    "asyncpg>=0.29",
+    "pydantic>=2.6",
+    # The three shared spine packages. They live under packages/ at the repo
+    # root and are installed editable alongside this service:
+    #   pip install -e packages/contracts -e packages/common -e packages/geo -e services/ingestor
+    # They are intentionally NOT pinned here (no PyPI release); the Dockerfile
+    # and dev setup install them by path.
+    "trident-contracts",
+    "trident-common",
+    "trident-geo",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "fakeredis>=2.20"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["ingestor", "ingestor.detectors"]

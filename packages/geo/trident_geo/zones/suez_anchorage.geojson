@@ -1,0 +1,44 @@
+{
+  "type": "FeatureCollection",
+  "name": "suez_anchorage",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "zone": "suez",
+        "kind": "anchorage",
+        "name": "Port Said northern waiting area",
+        "note": "Designated anchorage. Loitering HERE is benign (convoy queue); loitering elsewhere is not."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [32.20, 31.40],
+          [32.55, 31.40],
+          [32.55, 31.28],
+          [32.20, 31.28],
+          [32.20, 31.40]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "zone": "suez",
+        "kind": "anchorage",
+        "name": "Gulf of Suez southern waiting area",
+        "note": "Designated anchorage south of the canal mouth."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [32.45, 29.93],
+          [32.70, 29.93],
+          [32.70, 29.70],
+          [32.45, 29.70],
+          [32.45, 29.93]
+        ]]
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "type": "FeatureCollection",
+  "name": "suez_fairway",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "zone": "suez",
+        "kind": "fairway",
+        "name": "Suez Canal navigable fairway",
+        "note": "Approximate transit corridor Port Said -> Suez, used for transit-time and U-turn logic."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [32.298, 31.260],
+          [32.320, 31.100],
+          [32.328, 30.900],
+          [32.330, 30.700],
+          [32.345, 30.500],
+          [32.380, 30.350],
+          [32.480, 30.150],
+          [32.560, 29.960],
+          [32.575, 29.930],
+          [32.560, 29.928],
+          [32.500, 30.140],
+          [32.400, 30.345],
+          [32.365, 30.490],
+          [32.350, 30.690],
+          [32.348, 30.895],
+          [32.340, 31.095],
+          [32.318, 31.255],
+          [32.298, 31.260]
+        ]]
+      }
+    }
+  ]
+}

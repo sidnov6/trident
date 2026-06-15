@@ -1,0 +1,53 @@
+{
+  "type": "FeatureCollection",
+  "name": "suez_exclusion",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "zone": "suez",
+        "kind": "exclusion",
+        "name": "West bank restricted strip",
+        "note": "Canal-bank exclusion. A vessel geometry intruding here is a GEOFENCE_BREACH (grounding / bank contact, the Ever Given signature)."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [32.260, 31.250],
+          [32.296, 31.255],
+          [32.316, 31.090],
+          [32.338, 30.700],
+          [32.343, 30.490],
+          [32.300, 30.350],
+          [32.270, 30.500],
+          [32.265, 30.700],
+          [32.255, 31.090],
+          [32.260, 31.250]
+        ]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "zone": "suez",
+        "kind": "exclusion",
+        "name": "East bank restricted strip",
+        "note": "Canal-bank exclusion (Sinai side)."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[
+          [32.320, 31.255],
+          [32.360, 31.250],
+          [32.370, 31.090],
+          [32.372, 30.700],
+          [32.395, 30.490],
+          [32.345, 30.485],
+          [32.342, 30.700],
+          [32.340, 31.090],
+          [32.320, 31.255]
+        ]]
+      }
+    }
+  ]
+}

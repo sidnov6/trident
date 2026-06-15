@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --void: #05070a;
+  --panel: #0a0e14;
+  --hairline: #1a232e;
+  --ink: #c7d2dd;
+  --inkdim: #6b7c8c;
+  --inkfaint: #3a4856;
+  --amber: #ffb000;
+  --alert: #ff2e3e;
+  --info: #2ee6ff;
+  --green: #1fd65f;
+  --elevated: #ffd400;
+  --high: #ff8a00;
+  --critical: #ff2e3e;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--void);
+  color: var(--ink);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Thin terminal scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--void);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--hairline);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #25323f;
+}
+
+/* ── ops-room overlays ─────────────────────────────────────────────────── */
+
+/* Faint CRT scanlines drifting down the map */
+.scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0px,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.16) 3px,
+    rgba(0, 0, 0, 0) 4px
+  );
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(46, 230, 255, 0.05),
+    rgba(46, 230, 255, 0) 18%
+  );
+  animation: scan 7s linear infinite;
+}
+
+/* Darkened corners for the CIC focus */
+.vignette {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0) 45%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+@keyframes scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+/* ── ticker scroll ─────────────────────────────────────────────────────── */
+.ticker-mask {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 4%,
+    #000 96%,
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 4%,
+    #000 96%,
+    transparent
+  );
+}
+.ticker-track {
+  animation: ticker 60s linear infinite;
+  will-change: transform;
+}
+.ticker-track:hover {
+  animation-play-state: paused;
+}
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* MapLibre canvas should never paint a bright background */
+.maplibregl-map {
+  background: var(--void) !important;
+}
+.maplibregl-canvas {
+  outline: none;
+}
+
+/* line clamp helper (no plugin) */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
