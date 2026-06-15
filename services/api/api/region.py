@@ -98,8 +98,6 @@ async def analyze_region(
         "ships."
     )
     try:
-        import httpx
-
         async with httpx.AsyncClient(timeout=25) as client:
             r = await client.post(
                 "https://api.groq.com/openai/v1/chat/completions",
