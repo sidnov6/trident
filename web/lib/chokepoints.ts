@@ -63,6 +63,10 @@ export const CHOKEPOINTS_BY_ID: Record<string, Chokepoint> = Object.fromEntries(
   CHOKEPOINTS.map((c) => [c.id, c])
 );
 
-// Suez is the protagonist — default camera.
-export const DEFAULT_CENTER: [number, number] = [32.35, 30.55]; // [lon, lat]
-export const DEFAULT_ZOOM = 8.2;
+// Open on the whole world (seas + countries) so the operator sees every
+// chokepoint's traffic at a glance, then drills into a region by clicking a
+// chokepoint in the rail or an incident card. [lon, lat].
+export const DEFAULT_CENTER: [number, number] = [25, 25];
+export const DEFAULT_ZOOM = 1.6;
+// Camera used when drilling into a chokepoint / incident region.
+export const REGION_ZOOM = 7.5;

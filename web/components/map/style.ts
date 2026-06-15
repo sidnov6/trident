@@ -13,10 +13,12 @@ export function darkStyle(): StyleSpecification {
     sources: {
       basemap: {
         type: "raster",
+        // dark_all carries country borders, place + sea labels so the world
+        // view reads as a real map; OpenSeaMap seamarks layer on top at zoom 9+.
         tiles: [
-          "https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png",
-          "https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png",
-          "https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png",
+          "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+          "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+          "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
         ],
         tileSize: 256,
         attribution: "© OpenStreetMap © CARTO",
