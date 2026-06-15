@@ -125,9 +125,14 @@ body {
   }
 }
 
-/* MapLibre canvas should never paint a bright background */
+/* MapLibre canvas should never paint a bright background.
+   height/width 100% is REQUIRED: maplibre-gl.css forces position:relative on the
+   container, which cancels the parent's `absolute inset-0` and collapses the map
+   to height 0 (a black void). Pin it to fill its parent. */
 .maplibregl-map {
   background: var(--void) !important;
+  height: 100% !important;
+  width: 100% !important;
 }
 .maplibregl-canvas {
   outline: none;

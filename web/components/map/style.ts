@@ -32,13 +32,15 @@ export function darkStyle(): StyleSpecification {
         id: "basemap",
         type: "raster",
         source: "basemap",
+        // Keep it dark but LEGIBLE — coastlines, land and the canal must read
+        // clearly. The previous heavy dimming (brightness-max 0.55 + hue-rotate)
+        // crushed the map into a near-black void.
         paint: {
-          "raster-opacity": 0.85,
-          "raster-brightness-min": 0.0,
-          "raster-brightness-max": 0.55,
-          "raster-contrast": 0.15,
-          "raster-saturation": -0.5,
-          "raster-hue-rotate": 200, // push toward deep navy
+          "raster-opacity": 1.0,
+          "raster-brightness-min": 0.05,
+          "raster-brightness-max": 1.0,
+          "raster-contrast": 0.1,
+          "raster-saturation": -0.2,
         },
       },
     ],
