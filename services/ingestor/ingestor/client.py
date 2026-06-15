@@ -34,6 +34,7 @@ BACKOFF_FLOOR_S = 1.0
 BACKOFF_CAP_S = 30.0
 CLEAN_RUN_RESET_S = 60.0       # connected this long -> reset backoff to floor
 RESUB_DEBOUNCE_S = 1.0         # at most one subscription frame per second
+DATA_WATCHDOG_S = 120.0        # no DATA in this window -> force a reconnect (self-heal)
 
 
 class AISStreamClient:
@@ -84,7 +85,19 @@ class AISStreamClient:
                         await self._feedgap.close(time.time())
                     backoff = BACKOFF_FLOOR_S   # provisional reset; see below
 
-                    async for raw in ws:
+                    # Data watchdog: AISStream can keep the socket alive (pings
+                    # pass) yet stop sending DATA — the global firehose was seen to
+                    # go silent, ageing every vessel out of Redis. A plain
+                    # `async for` would wait forever; recv with a timeout forces a
+                    # reconnect after a window of silence so the feed self-heals.
+                    while True:
+                        try:
+                            raw = await asyncio.wait_for(ws.recv(), timeout=DATA_WATCHDOG_S)
+                        except asyncio.TimeoutError:
+                            log.warning(
+                                "no AIS data in %.0fs — forcing reconnect", DATA_WATCHDOG_S
+                            )
+                            break
                         # Reset backoff only after a sustained clean run.
                         if (
                             connected_at is not None

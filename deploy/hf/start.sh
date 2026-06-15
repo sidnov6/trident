@@ -66,7 +66,9 @@ redis-server --daemonize yes --save "" --appendonly no --port 6379
 for i in $(seq 1 30); do redis-cli ping >/dev/null 2>&1 && break; sleep 1; done
 
 # ── live pipeline ──────────────────────────────────────────────────────────
-log "AIS source: ${AIS_SOURCE:-live}; LLM: ${GROQ_API_KEY:+groq}${GROQ_API_KEY:-deterministic}"
+# NB: never expand $GROQ_API_KEY into the log — print only whether it's set.
+if [ -n "${GROQ_API_KEY:-}" ]; then LLM_MODE="groq"; else LLM_MODE="deterministic"; fi
+log "AIS source: ${AIS_SOURCE:-live}; global: ${AIS_GLOBAL:-false}; LLM: ${LLM_MODE}"
 log "starting ingestor (live AISStream)..."
 python -m ingestor.main &
 INGESTOR_PID=$!
