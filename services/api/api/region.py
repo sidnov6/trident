@@ -12,6 +12,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
+try:
+    import httpx
+except ImportError:  # pragma: no cover
+    httpx = None  # type: ignore
+
 from trident_common.settings import get_settings
 from trident_contracts.enums import ShipTypeBucket, bucket_for_ship_type
 
@@ -57,10 +62,19 @@ async def analyze_region(
     template when no Groq key is configured (the agent still answers, just
     rule-based)."""
     settings = get_settings()
-    breakdown = ", ".join(f"{k} {v}" for k, v in counts.items() if v) or "no vessels"
+    # Identified vs unclassified: AIS ShipType is often 0/"not available" or a
+    # static record we haven't received yet, which buckets to "other". The
+    # narrative should be about the IDENTIFIED traffic, not the unknown tail.
+    typed = {k: v for k, v in counts.items() if k != "other" and v}
+    identified = sum(typed.values())
+    breakdown = ", ".join(f"{k} {v}" for k, v in typed.items()) or "none identified yet"
     region = _region_name(bbox)
 
-    if not settings.groq_api_key:
+    if not settings.groq_api_key or httpx is None:
+        log.warning(
+            "region analyze fallback: groq_key=%s httpx=%s",
+            bool(settings.groq_api_key), httpx is not None,
+        )
         return {
             "analysis": _deterministic(region, counts, total),
             "model": "deterministic-fallback",
@@ -78,8 +92,10 @@ async def analyze_region(
     )
     user = (
         f"Region {region}, bbox lat[{bbox[0]:.1f},{bbox[2]:.1f}] lon[{bbox[1]:.1f},"
-        f"{bbox[3]:.1f}]. Live vessels in view: {total}. By type: {breakdown}. "
-        "Describe the maritime picture."
+        f"{bbox[3]:.1f}]. {total} vessels in view; {identified} have a reported "
+        f"AIS ship type: {breakdown}. (The remaining {total - identified} report no "
+        "type yet — ignore them.) Describe the maritime picture from the identified "
+        "ships."
     )
     try:
         import httpx
@@ -113,8 +129,17 @@ async def analyze_region(
 def _deterministic(region: str, counts: dict[str, int], total: int) -> str:
     if total == 0:
         return f"No live vessels currently in view around {region}."
-    ranked = sorted(((v, k) for k, v in counts.items() if v), reverse=True)
-    top = ranked[0][1] if ranked else "other"
+    # Rank by the IDENTIFIED types (ignore the unclassified "other" tail).
+    typed = {k: v for k, v in counts.items() if k != "other" and v}
+    identified = sum(typed.values())
+    if not typed:
+        return (
+            f"{total} vessels in view around {region}, but none report an AIS ship "
+            "type yet (static data arrives every few minutes). Pan to a busier lane "
+            "or wait for types to populate."
+        )
+    ranked = sorted(((v, k) for k, v in typed.items()), reverse=True)
+    top = ranked[0][1]
     lead = {
         "tanker": "tanker-heavy — consistent with an oil/energy shipping route",
         "cargo": "cargo-dominated — a commercial trade lane",
@@ -123,8 +148,8 @@ def _deterministic(region: str, counts: dict[str, int], total: int) -> str:
         "high-speed": "high-speed-craft heavy — a fast-ferry corridor",
         "tug/special": "service/tug traffic — likely a port approach or works area",
     }.get(top, "mixed traffic")
-    parts = ", ".join(f"{v} {k}" for v, k in ((v, k) for k, v in counts.items() if v))
+    parts = ", ".join(f"{v} {k}" for v, k in ranked)
     return (
-        f"{total} vessels in view around {region}; the mix is {lead}. "
-        f"Composition: {parts}."
+        f"{total} vessels in view around {region}; of {identified} with a reported "
+        f"type, the traffic is {lead}. Identified mix: {parts}."
     )
