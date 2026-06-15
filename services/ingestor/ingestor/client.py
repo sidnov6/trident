@@ -24,6 +24,7 @@ from typing import AsyncIterator, Optional
 
 import websockets
 
+from trident_common.settings import get_settings
 from trident_geo import CHOKEPOINT_BOXES
 
 log = logging.getLogger("ingestor.client")
@@ -44,10 +45,17 @@ class AISStreamClient:
         self._closed = False
         self._last_subscribe = 0.0
 
+    def _boxes(self) -> list:
+        # Global coverage = one world-spanning box (all ships everywhere).
+        # AISStream wants [[swLat, swLon], [neLat, neLon]].
+        if get_settings().ais_global:
+            return [[[-90.0, -180.0], [90.0, 180.0]]]
+        return CHOKEPOINT_BOXES
+
     def _subscription_message(self) -> str:
         return json.dumps({
             "APIKey": self._api_key,
-            "BoundingBoxes": CHOKEPOINT_BOXES,
+            "BoundingBoxes": self._boxes(),
             "FilterMessageTypes": ["PositionReport", "ShipStaticData"],
         })
 
@@ -59,7 +67,8 @@ class AISStreamClient:
             await asyncio.sleep(wait)
         await ws.send(self._subscription_message())
         self._last_subscribe = time.monotonic()
-        log.info("subscribed to %d bounding boxes", len(CHOKEPOINT_BOXES))
+        scope = "WORLD (global)" if get_settings().ais_global else f"{len(CHOKEPOINT_BOXES)} chokepoint boxes"
+        log.info("subscribed to %s", scope)
 
     async def stream(self) -> AsyncIterator[dict]:
         backoff = BACKOFF_FLOOR_S

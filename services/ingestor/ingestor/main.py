@@ -126,11 +126,21 @@ class Ingestor:
                     continue
                 vstate = await state.apply(upd)
 
+                # At GLOBAL scale we track every ship in Redis for the live map, but
+                # keep the expensive work — forensic track persistence and the
+                # per-vessel detectors — scoped to vessels INSIDE a chokepoint zone.
+                # (In chokepoint mode every subscribed vessel is zoned, so this is a
+                # no-op there.) This is the two-speed principle at world scale.
+                in_zone = vstate.zone is not None
+
                 # Persistence is fire-and-forget onto bounded queues.
-                if not upd.is_static and upd.lat is not None:
+                if not upd.is_static and upd.lat is not None and in_zone:
                     writer.enqueue_fix(vstate)
                 if upd.is_static:
                     writer.enqueue_vessel(vstate)
+
+                if not in_zone:
+                    continue
 
                 # Per-vessel detectors run on the fix's own timestamp so synthetic
                 # time-compression and live wall-clock both behave correctly.

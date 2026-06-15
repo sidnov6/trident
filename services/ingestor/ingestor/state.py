@@ -83,11 +83,18 @@ class VesselStateEngine:
         try:
             await self._redis.hset(key, mapping=mapping)
             await self._redis.expire(key, keys.VESSEL_TTL_S)
-            if moved and state.zone:
+            if moved:
+                # Global index: EVERY vessel, so the worldwide map + viewport
+                # GEOSEARCH can find it regardless of chokepoint membership.
                 await self._redis.geoadd(
-                    keys.zone_geo_key(state.zone),
+                    keys.GLOBAL_GEO,
                     (state.lon, state.lat, str(state.mmsi)),
                 )
+                if state.zone:
+                    await self._redis.geoadd(
+                        keys.zone_geo_key(state.zone),
+                        (state.lon, state.lat, str(state.mmsi)),
+                    )
         except Exception:
             # Redis hiccups must never stall ingest; the next fix re-mirrors.
             pass

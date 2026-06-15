@@ -12,6 +12,10 @@ class Settings(BaseSettings):
     # --- AIS feed --------------------------------------------------------
     aisstream_api_key: str = ""
     ais_source: str = "synthetic"   # "live" | "synthetic" — synthetic needs no key
+    # When True, subscribe to the WHOLE WORLD (all ships everywhere) rather than
+    # the six chokepoint boxes. Heavy detection + forensic track persistence stay
+    # scoped to the chokepoint zones; the global feed drives live worldwide display.
+    ais_global: bool = False
 
     # --- datastores ------------------------------------------------------
     redis_url: str = "redis://localhost:6379/0"

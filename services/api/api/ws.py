@@ -29,6 +29,7 @@ XREADGROUP loop fanning out), so N clients don't open N consumer reads.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
 from collections import deque
@@ -76,6 +77,13 @@ class ClientHub:
         # Bounded discrete-event backlog (signal_tick / incident / zone_stats).
         self._events: deque[dict[str, Any]] = deque(maxlen=EVENT_BACKLOG_MAX)
         self._wake = asyncio.Event()
+        # Per-client viewport (min_lat, min_lon, max_lat, max_lon). Defaults to the
+        # whole world so something renders before the client reports its camera; the
+        # client narrows it on every map move so we only stream in-view ships.
+        self.viewport: tuple[float, float, float, float] = (-85.0, -180.0, 85.0, 180.0)
+
+    def set_viewport(self, bbox: tuple[float, float, float, float]) -> None:
+        self.viewport = bbox
 
     # -- producers ---------------------------------------------------------
     def push_vessels(self, vessels: list[VesselLite]) -> None:
@@ -242,7 +250,9 @@ async def _vessel_delta_loop(hub: ClientHub, reader: StateReader) -> None:
     interval = 1.0 / VESSEL_DELTA_HZ
     while True:
         try:
-            lite = await reader.snapshot_lite(now=time.time())
+            # Stream only the ships in THIS client's current viewport (global feed
+            # has tens of thousands of vessels — never push them all).
+            lite = await reader.viewport_lite(hub.viewport, now=time.time())
             if lite:
                 hub.push_vessels(lite)
         except Exception:  # pragma: no cover
@@ -324,11 +334,19 @@ async def ws_endpoint(websocket: WebSocket) -> None:
     writer = asyncio.create_task(_writer())
 
     try:
-        # Block on the client read side so we notice a disconnect promptly. The
-        # UI is send-only on this socket, so any recv just keeps it alive / lets
-        # us detect close.
+        # The client streams its camera here: {"kind":"viewport","bbox":[minLat,
+        # minLon,maxLat,maxLon]} on every map move. Anything else just keeps the
+        # socket alive / lets us detect close.
         while True:
-            await websocket.receive_text()
+            raw = await websocket.receive_text()
+            try:
+                msg = json.loads(raw)
+                if msg.get("kind") == "viewport":
+                    b = msg.get("bbox") or []
+                    if len(b) == 4:
+                        hub.set_viewport((float(b[0]), float(b[1]), float(b[2]), float(b[3])))
+            except (json.JSONDecodeError, TypeError, ValueError):
+                pass
     except WebSocketDisconnect:
         pass
     except Exception:  # pragma: no cover

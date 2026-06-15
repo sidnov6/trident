@@ -123,6 +123,16 @@ export default function MapView() {
     feedRef.current = feed;
     feed.start();
 
+    // Report the camera viewport so the server streams only in-view ships
+    // (the global feed has tens of thousands of vessels). Fires on every move.
+    const sendViewport = () => {
+      const b = map.getBounds();
+      feed.sendViewport([b.getSouth(), b.getWest(), b.getNorth(), b.getEast()]);
+    };
+    map.on("moveend", sendViewport);
+    map.once("idle", sendViewport); // initial camera
+    map.on("load", sendViewport);
+
     // REST seed (defensive — empty if offline)
     getVessels("suez").then((vs) => {
       feed.seed(vs);

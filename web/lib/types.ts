@@ -24,6 +24,7 @@ export interface RenderVessel {
   lerpFromLon: number;
   lerpFromLat: number;
   lerpStartMs: number;
+  rx: number; // client receive time (epoch ms) — drives viewport TTL pruning
 }
 
 export interface Chokepoint {

@@ -24,6 +24,7 @@ const LERP_MS = 300; // glide toward truth over this window
 const TRAIL_MS = 180_000; // keep ~3 min of wake
 const TRAIL_MAX = 60; // hard cap per vessel
 const PING_TTL_MS = 9000; // dark-ping ring lifetime
+const VESSEL_TTL_MS = 12_000; // drop a vessel not re-pushed within this (left viewport)
 
 // project(v, now) — the spec dead-reckoning math. `now` is epoch ms.
 // v carries truth fix (la, lo, s sog kn, c cog deg, f fix epoch s).
@@ -61,6 +62,7 @@ export class TridentFeed {
   private backoff = 1000;
   private closed = false;
   private dirty = false;
+  private lastViewport: [number, number, number, number] | null = null;
 
   constructor(url: string, cbs: FeedCallbacks = {}) {
     this.url = url;
@@ -85,6 +87,19 @@ export class TridentFeed {
     this.ws = null;
   }
 
+  /** Tell the server which region the camera is showing so it streams only
+   *  the ships in view. bbox = [minLat, minLon, maxLat, maxLon]. */
+  sendViewport(bbox: [number, number, number, number]) {
+    this.lastViewport = bbox;
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        this.ws.send(JSON.stringify({ kind: "viewport", bbox }));
+      } catch {
+        /* will re-send on reconnect */
+      }
+    }
+  }
+
   private connect() {
     try {
       this.ws = new WebSocket(this.url);
@@ -95,6 +110,8 @@ export class TridentFeed {
     this.ws.onopen = () => {
       this.backoff = 1000;
       this.cbs.onStatus?.(true);
+      // Re-assert the camera so the server resumes streaming the right region.
+      if (this.lastViewport) this.sendViewport(this.lastViewport);
     };
     this.ws.onclose = () => {
       this.cbs.onStatus?.(false);
@@ -170,6 +187,7 @@ export class TridentFeed {
       lerpFromLon: fromLon,
       lerpFromLat: fromLat,
       lerpStartMs: now,
+      rx: now,
     };
     this.vessels.set(v.m, rv);
 
@@ -228,6 +246,15 @@ export class TridentFeed {
       } else {
         v.rLon = projLon;
         v.rLat = projLat;
+      }
+    }
+    // Drop vessels we haven't received in a while: the server re-pushes every
+    // in-view ship each tick, so a missing one has left the viewport (or aged
+    // out). This keeps the rendered set ~= what's currently on screen.
+    for (const [m, v] of this.vessels) {
+      if (now - v.rx > VESSEL_TTL_MS) {
+        this.vessels.delete(m);
+        this.trails.delete(m);
       }
     }
     // Expire dark pings.

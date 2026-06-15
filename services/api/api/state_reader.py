@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from typing import Any, Optional
 
 from trident_common import keys
@@ -167,58 +168,65 @@ class StateReader:
 
     # -- viewport (bbox) ---------------------------------------------------
     async def viewport_vessels(
-        self, bbox: tuple[float, float, float, float]
+        self, bbox: tuple[float, float, float, float], *, cap: int = 6000
     ) -> list[VesselState]:
         """Vessels intersecting ``bbox = (min_lat, min_lon, max_lat, max_lon)``.
 
-        Resolved per-zone through ``GEOSEARCH`` over each ``zone_geo_key`` whose
-        chokepoint bbox overlaps the requested viewport, then HGETALL'd and
-        filtered to the exact box. Zones outside the viewport are skipped, so a
-        zoomed-in map only touches the relevant GEO index.
+        Resolved through a single ``GEOSEARCH`` over the GLOBAL geo index, so any
+        viewport anywhere on Earth returns its ships (not just chokepoints). For a
+        near-global view the box exceeds Redis' GEOSEARCH bounds, so we fall back
+        to a capped scan of the global index. Capped at ``cap`` to bound the push.
         """
         if self._redis is None:
             return []
         min_lat, min_lon, max_lat, max_lon = bbox
-        seen: set[int] = set()
         mmsis: list[int] = []
 
-        for cp in CHOKEPOINTS:
-            (sw_lat, sw_lon), (ne_lat, ne_lon) = cp.bbox
-            # Skip zones whose bbox doesn't intersect the viewport at all.
-            if ne_lat < min_lat or sw_lat > max_lat:
-                continue
-            if ne_lon < min_lon or sw_lon > max_lon:
-                continue
-            # GEOSEARCH a box centred on the zone centre that covers it fully.
-            c_lat = (sw_lat + ne_lat) / 2.0
-            c_lon = (sw_lon + ne_lon) / 2.0
-            # width/height in metres (rough: 1 deg lat ~= 111_320 m).
-            height_m = (ne_lat - sw_lat) * 111_320.0
-            width_m = (ne_lon - sw_lon) * 111_320.0
+        span_lon = max_lon - min_lon
+        span_lat = max_lat - min_lat
+        large = span_lon >= 120.0 or span_lat >= 120.0  # ~world view
+
+        if not large:
+            c_lat = (min_lat + max_lat) / 2.0
+            c_lon = (min_lon + max_lon) / 2.0
+            height_m = max(span_lat * 111_320.0, 1.0)
+            width_m = max(span_lon * 111_320.0 * max(math.cos(math.radians(c_lat)), 0.05), 1.0)
             try:
                 members = await self._redis.geosearch(
-                    keys.zone_geo_key(cp.id),
-                    longitude=c_lon,
-                    latitude=c_lat,
-                    width=max(width_m, 1.0),
-                    height=max(height_m, 1.0),
-                    unit="m",
+                    keys.GLOBAL_GEO,
+                    longitude=c_lon, latitude=c_lat,
+                    width=width_m, height=height_m, unit="m",
+                    count=cap, sort="ASC",
                 )
             except Exception:
-                continue
-            for m in members or ():
-                if isinstance(m, bytes):
-                    m = m.decode()
-                try:
-                    mmsi = int(m)
-                except (TypeError, ValueError):
-                    continue
-                if mmsi not in seen:
-                    seen.add(mmsi)
-                    mmsis.append(mmsi)
+                members = None
+            if members is not None:
+                for m in members or ():
+                    if isinstance(m, bytes):
+                        m = m.decode()
+                    try:
+                        mmsis.append(int(m))
+                    except (TypeError, ValueError):
+                        continue
+                states = await self._states_for_mmsis(mmsis)
+                return [
+                    s for s in states
+                    if min_lat <= s.lat <= max_lat and min_lon <= s.lon <= max_lon
+                ]
 
+        # World view (or GEOSEARCH refused the box): sample the global index.
+        try:
+            members = await self._redis.zrange(keys.GLOBAL_GEO, 0, cap - 1)
+        except Exception:
+            members = []
+        for m in members or ():
+            if isinstance(m, bytes):
+                m = m.decode()
+            try:
+                mmsis.append(int(m))
+            except (TypeError, ValueError):
+                continue
         states = await self._states_for_mmsis(mmsis)
-        # Exact bbox filter (GEO box is an over-approximation).
         return [
             s for s in states
             if min_lat <= s.lat <= max_lat and min_lon <= s.lon <= max_lon
@@ -264,4 +272,12 @@ class StateReader:
         states = (
             await self.zone_vessels(zone) if zone else await self.all_active_vessels()
         )
+        return [to_lite(s, now=now, watchlist=watch) for s in states]
+
+    async def viewport_lite(
+        self, bbox: tuple[float, float, float, float], *, now: float, cap: int = 6000
+    ) -> list[VesselLite]:
+        """VesselLite for every ship in the viewport ``bbox`` (the global hot path)."""
+        watch = await self.watchlist()
+        states = await self.viewport_vessels(bbox, cap=cap)
         return [to_lite(s, now=now, watchlist=watch) for s in states]

@@ -21,6 +21,11 @@ def zone_geo_key(zone: str) -> str:
     return f"chokepoint:{zone}:geo"
 
 
+# Global GEO index of EVERY live vessel (lon/lat per MMSI). Backs the worldwide
+# map view + viewport (bbox) GEOSEARCH when AIS coverage is global.
+GLOBAL_GEO = "vessels:geo"
+
+
 def zone_baseline_key(zone: str) -> str:
     """EWMA congestion baseline state for a zone."""
     return f"chokepoint:{zone}:baseline"
