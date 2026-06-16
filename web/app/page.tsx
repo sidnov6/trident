@@ -31,8 +31,9 @@ export default function CommandCenter() {
       <div className="flex min-h-0 flex-1">
         <LeftRail />
 
-        {/* center: map (most pixels) */}
-        <main className="relative min-w-0 flex-1">
+        {/* center: map (most pixels). overflow-hidden clips the dossier slide-over
+            to the map so, when closed, it doesn't bleed over the right rail. */}
+        <main className="relative min-w-0 flex-1 overflow-hidden">
           <MapView />
           <VesselDossierPanel />
         </main>
