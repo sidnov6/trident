@@ -100,8 +100,16 @@ class FleetSweep:
                 if await self._should_publish(snap, hit):
                     await self._publish(snap, hit, risk, now)
                     published += 1
+            # Record a breadcrumb + the why-flagged reason for EVERY alerted ship
+            # (so clicking any alert shows its route + reason). A moving threat
+            # builds a real path; a stationary loiterer stays a point — honestly.
+            await self._breadcrumb(snap, vhits, risk, now)
+            # Only HIGH-risk ships go on the durable watchlist (-> PG persistence).
             if risk >= C.RISK_FLAG_THRESHOLD:
-                await self._flag(snap, vhits, risk, now)
+                try:
+                    await self._redis.sadd(keys.WATCHLIST_PRIORITY, snap.mmsi)
+                except Exception:
+                    pass
 
         # --- prune stale memory -------------------------------------------
         stale = [m for m, mem in self._mem.items()
@@ -177,23 +185,22 @@ class FleetSweep:
         except Exception:
             log.debug("xadd fleet alert failed", exc_info=True)
 
-    async def _flag(self, snap: Snapshot, vhits, risk: float, now: float) -> None:
-        """High-risk vessel -> watchlist + a breadcrumb for the path/origin view."""
+    async def _breadcrumb(self, snap: Snapshot, vhits, risk: float, now: float) -> None:
+        """Append a path point + record the why-flagged reason for this vessel."""
         import json
 
+        tk = keys.fleet_track_key(snap.mmsi)
         top = max(vhits, key=lambda h: h.severity)
         try:
-            await self._redis.sadd(keys.WATCHLIST_PRIORITY, snap.mmsi)
+            await self._redis.rpush(tk, f"{snap.last_fix_ts or now},{snap.lat},{snap.lon}")
+            await self._redis.ltrim(tk, -C.BREADCRUMB_MAX, -1)
+            await self._redis.expire(tk, keys.VESSEL_TTL_S)
             await self._redis.hset(keys.WATCHLIST_META, str(snap.mmsi), json.dumps({
                 "category": top.category, "reason": top.evidence[0] if top.evidence else "",
                 "flagged_ts": now, "risk": round(risk, 3),
             }))
-            tk = keys.fleet_track_key(snap.mmsi)
-            await self._redis.rpush(tk, f"{snap.last_fix_ts or now},{snap.lat},{snap.lon}")
-            await self._redis.ltrim(tk, -C.BREADCRUMB_MAX, -1)
-            await self._redis.expire(tk, keys.VESSEL_TTL_S)
         except Exception:
-            log.debug("flag write failed", exc_info=True)
+            log.debug("breadcrumb write failed", exc_info=True)
 
 
 def _composite_risk(vhits, snap: Snapshot) -> float:
