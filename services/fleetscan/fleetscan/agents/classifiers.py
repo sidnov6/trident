@@ -16,8 +16,12 @@ from .base import AgentHit, FleetAgent
 def _is_tanker(s: Snapshot) -> bool:
     if s.bucket == int(ShipTypeBucket.TANKER):
         return True
-    # untyped but laden + has IMO -> likely a tanker (handles AIS type-0)
-    return bool(s.imo) and (s.draught or 0) >= C.DRAUGHT_TANKER_M
+    # ONLY when the type is genuinely unknown (AIS type 0 -> bucket OTHER): a
+    # laden vessel with an IMO is likely a tanker. Never override a KNOWN
+    # non-tanker type (cargo/passenger/etc.).
+    if s.bucket == int(ShipTypeBucket.OTHER):
+        return bool(s.imo) and (s.draught or 0) >= C.DRAUGHT_TANKER_M
+    return False
 
 
 def _dest_missing(s: Snapshot) -> bool:
@@ -55,23 +59,24 @@ class DarkFleetAgent(FleetAgent):
     name = "Shadow-Tanker Agent"
 
     def classify(self, s: Snapshot, mem: AgentMemory, now: float) -> AgentHit | None:
+        # FOC tankers are extremely common and mostly legitimate, so the bare
+        # profile (tanker + flag-of-convenience) is NOT enough to alert — that
+        # would flag every Panama/Liberia/Malta tanker. Require an actual
+        # behavioural red flag on top of the profile.
         if not (_is_tanker(s) and s.is_foc):
             return None
-        ev = [f"Tanker under a flag of convenience ({s.flag})"]
         dark = mem.was_dark
-        extra = False
+        ev = [f"Tanker under a flag of convenience ({s.flag})"]
         if dark:
             ev.append("Has gone dark recently")
-            extra = True
         elif _dest_missing(s):
-            ev.append("No declared destination")
-            extra = True
+            ev.append("Hiding its destination")
         elif s.nav_status == C.NAV_UNDEFINED and s.sog > 3.0:
             ev.append("Moving with an undefined navigation status")
-            extra = True
-        conf = 0.6 + (0.15 if extra else 0.0)
+        else:
+            return None  # plain FOC tanker behaving normally -> not an alert
         sev = 0.6 + (0.4 if dark else 0.0)
-        return AgentHit(self.category, sev, conf, ev)
+        return AgentHit(self.category, sev, 0.7, ev)
 
 
 class SpoofingAgent(FleetAgent):
@@ -97,11 +102,15 @@ class LoiteringAgent(FleetAgent):
         underway_status = s.nav_status not in (C.NAV_AT_ANCHOR, C.NAV_MOORED)
         if s.sog < C.LOITER_SOG and underway_status and s.bucket != int(ShipTypeBucket.FISHING):
             mem.loiter_streak += 1
-            if mem.loiter_streak >= C.LOITER_SWEEPS:
+            # The world is full of legitimately slow/stopped ships, so plain
+            # loitering is not alarming. Only flag loitering that is actually
+            # suspicious: a TANKER or a flag-of-convenience vessel (pre-STS /
+            # waiting-for-orders signature). Everything else just resets streak.
+            if mem.loiter_streak >= C.LOITER_SWEEPS and (_is_tanker(s) or s.is_foc):
                 mins = mem.loiter_streak * C.SCAN_INTERVAL_S / 60.0
-                sev = 0.55 + (0.15 if (s.is_foc or _is_tanker(s)) else 0.0)
-                return AgentHit(self.category, sev, 0.7,
-                                [f"Sitting nearly still in open water (~{mins:.0f} min)"])
+                return AgentHit(self.category, 0.6, 0.7,
+                                [f"{'Tanker' if _is_tanker(s) else 'Vessel'} sitting "
+                                 f"nearly still in open water (~{mins:.0f} min)"])
         else:
             mem.loiter_streak = 0
         return None
