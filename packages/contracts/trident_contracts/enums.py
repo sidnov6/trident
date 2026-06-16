@@ -21,6 +21,36 @@ class SignalType(str, Enum):
     UTURN = "UTURN"
 
 
+class ThreatCategory(str, Enum):
+    """Layperson-facing danger categories emitted by the fleetscan agents.
+
+    Each maps to a deterministic detection rule over the live Redis vessel state.
+    The ticker, map colouring and the investigate panel key on these.
+    """
+
+    GONE_DARK = "GONE_DARK"            # was moving, switched its tracker off
+    DARK_FLEET = "DARK_FLEET"          # shadow tanker — old tanker, cheap flag
+    SPOOFING = "SPOOFING"             # faking position / two ships, one identity
+    LOITERING = "LOITERING"           # sitting still in open sea
+    STS_TRANSFER = "STS_TRANSFER"     # two ships meeting at sea (cargo transfer)
+    SANCTIONS_RISK = "SANCTIONS_RISK"  # behavioural sanctions-evasion signature
+    NAV_HAZARD = "NAV_HAZARD"         # aground / blocking a chokepoint
+    GREY_ZONE = "GREY_ZONE"           # possible military / state vessel
+
+
+# Plain-language label + map colour per category (single source of truth).
+THREAT_CATEGORY_META: dict[str, dict[str, str]] = {
+    "GONE_DARK":      {"label": "Went Dark",                "color": "#111111"},
+    "DARK_FLEET":     {"label": "Shadow Tanker",            "color": "#B5179E"},
+    "SPOOFING":       {"label": "Faking Position",          "color": "#7209B7"},
+    "LOITERING":      {"label": "Hanging Around",           "color": "#FB8500"},
+    "STS_TRANSFER":   {"label": "Meeting at Sea",           "color": "#F48C06"},
+    "SANCTIONS_RISK": {"label": "Possible Sanctions Evasion", "color": "#D00000"},
+    "NAV_HAZARD":     {"label": "Blocking / Aground",       "color": "#FF006E"},
+    "GREY_ZONE":      {"label": "Possible Military",        "color": "#2D6A4F"},
+}
+
+
 class Typology(str, Enum):
     """Threat classification assigned by the Analyst agent."""
 

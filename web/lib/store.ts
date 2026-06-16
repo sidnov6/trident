@@ -1,11 +1,12 @@
 "use client";
 
 import { create } from "zustand";
-import type { Incident, SignalLite } from "./contracts";
+import type { Incident, SignalLite, FleetAlert, ThreatCategory } from "./contracts";
 import type { ZoneStat, HealthState } from "./types";
 
 const MAX_SIGNALS = 200;
 const MAX_INCIDENTS = 100;
+const MAX_ALERTS = 150;
 
 interface UIState {
   // selection / camera intent
@@ -22,6 +23,10 @@ interface UIState {
   health: HealthState;
   vesselCount: number;
   signalCounts: Record<string, number>;
+  // fleet threat alerts
+  alerts: FleetAlert[];
+  alertCounts: Record<string, number>;
+  mutedCategories: Record<string, boolean>;
   // live ship-type histogram for the current viewport (index = ShipTypeBucket)
   viewportBuckets: number[];
   viewportBbox: [number, number, number, number] | null; // minLat,minLon,maxLat,maxLon
@@ -41,6 +46,8 @@ interface UIState {
   setVesselCount: (n: number) => void;
   setViewportBuckets: (b: number[]) => void;
   setViewportBbox: (b: [number, number, number, number]) => void;
+  pushAlert: (a: FleetAlert) => void;
+  toggleCategory: (c: ThreatCategory) => void;
 }
 
 export const useStore = create<UIState>((set) => ({
@@ -56,6 +63,9 @@ export const useStore = create<UIState>((set) => ({
   health: { online: false, msgPerSec: 0, lastMsgMs: 0 },
   vesselCount: 0,
   signalCounts: {},
+  alerts: [],
+  alertCounts: {},
+  mutedCategories: {},
   viewportBuckets: [0, 0, 0, 0, 0, 0, 0],
   viewportBbox: null,
 
@@ -93,4 +103,22 @@ export const useStore = create<UIState>((set) => ({
   setVesselCount: (n) => set({ vesselCount: n }),
   setViewportBuckets: (b) => set({ viewportBuckets: b }),
   setViewportBbox: (b) => set({ viewportBbox: b }),
+
+  pushAlert: (a) =>
+    set((s) => {
+      // de-dupe by id; replace an existing alert for the same ship+category
+      // (an escalation update) rather than stacking duplicates.
+      const without = s.alerts.filter(
+        (x) => x.id !== a.id && !(x.mmsi === a.mmsi && x.category === a.category)
+      );
+      const counts = { ...s.alertCounts };
+      counts[a.category] = (counts[a.category] ?? 0) + 1;
+      return {
+        alerts: [a, ...without].slice(0, MAX_ALERTS),
+        alertCounts: counts,
+      };
+    }),
+
+  toggleCategory: (c) =>
+    set((s) => ({ mutedCategories: { ...s.mutedCategories, [c]: !s.mutedCategories[c] } })),
 }));

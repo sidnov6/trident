@@ -19,6 +19,53 @@ export type Typology =
   | "MILITARY_ACTIVITY"
   | "BENIGN";
 
+// Layperson-facing danger categories emitted by the fleetscan agents.
+export type ThreatCategory =
+  | "GONE_DARK"
+  | "DARK_FLEET"
+  | "SPOOFING"
+  | "LOITERING"
+  | "STS_TRANSFER"
+  | "SANCTIONS_RISK"
+  | "NAV_HAZARD"
+  | "GREY_ZONE";
+
+// Plain-language label + map colour per category (mirrors THREAT_CATEGORY_META).
+export const THREAT_CATEGORY: Record<
+  ThreatCategory,
+  { label: string; color: string; blurb: string }
+> = {
+  GONE_DARK: { label: "Went Dark", color: "#111111", blurb: "Was moving, then switched its tracker off." },
+  DARK_FLEET: { label: "Shadow Tanker", color: "#B5179E", blurb: "Old tanker under a cheap flag, behaving like a sanctions-runner." },
+  SPOOFING: { label: "Faking Position", color: "#7209B7", blurb: "Its tracker is lying — it teleported or cloned an identity." },
+  LOITERING: { label: "Hanging Around", color: "#FB8500", blurb: "Sitting nearly still in open sea, not at a port." },
+  STS_TRANSFER: { label: "Meeting at Sea", color: "#F48C06", blurb: "Two ships rafted together at sea, likely moving cargo." },
+  SANCTIONS_RISK: { label: "Sanctions Evasion", color: "#D00000", blurb: "Behaving like a vessel dodging sanctions." },
+  NAV_HAZARD: { label: "Blocking / Aground", color: "#FF006E", blurb: "Aground or stuck where it shouldn't be." },
+  GREY_ZONE: { label: "Possible Military", color: "#2D6A4F", blurb: "May be a naval or state vessel." },
+};
+
+export interface FleetAlert {
+  id: string;
+  ts: number;
+  category: ThreatCategory;
+  agent: string;
+  mmsi: number;
+  name?: string | null;
+  flag?: string | null;
+  ship_bucket: number;
+  severity: number;
+  confidence: number;
+  risk: number;
+  position: [number, number]; // [lat, lon]
+  cog: number;
+  sog: number;
+  zone?: string | null;
+  evidence: string[];
+  narrative?: string | null;
+  detector_version: string;
+}
+
 export type IncidentStatus = "open" | "confirmed" | "dismissed" | "actioned";
 export type ThreatLevel = "GREEN" | "ELEVATED" | "HIGH" | "CRITICAL";
 
@@ -123,6 +170,7 @@ export type WSMessage =
   | { kind: "vessel_delta"; vessels: VesselLite[]; ts: number }
   | { kind: "signal_tick"; signal: SignalLite }
   | { kind: "incident"; incident: Incident }
+  | { kind: "fleet_alert"; alert: FleetAlert }
   | {
       kind: "zone_stats";
       zone: string;

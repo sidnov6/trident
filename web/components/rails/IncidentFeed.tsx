@@ -23,17 +23,17 @@ export default function IncidentFeed() {
   };
 
   return (
-    <aside className="flex w-[340px] shrink-0 flex-col border-l border-hairline bg-panel">
-      <div className="flex items-center justify-between border-b border-hairline bg-void px-3 py-1.5">
-        <span className="text-[11px] uppercase tracking-[0.25em] text-amber">
-          Incident Feed
+    <div className="flex min-h-0 flex-col">
+      <div className="flex items-center justify-between border-b border-hairline bg-panel2 px-3 py-1.5">
+        <span className="text-[11px] uppercase tracking-[0.2em] text-inkdim">
+          Confirmed Cases
         </span>
         <span className="tabular-nums text-[10px] text-inkfaint">
           {incidents.length} OPEN
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="max-h-[34vh] flex-1 overflow-y-auto">
         {incidents.length === 0 && (
           <div className="px-3 py-6 text-center text-[11px] text-inkfaint">
             <div className="animate-flicker">AWAITING CONFIRMED INCIDENTS</div>
@@ -52,7 +52,7 @@ export default function IncidentFeed() {
           />
         ))}
       </div>
-    </aside>
+    </div>
   );
 }
 

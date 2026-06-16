@@ -4,8 +4,10 @@ import dynamic from "next/dynamic";
 import StatusBar from "@/components/statusbar/StatusBar";
 import LeftRail from "@/components/rails/LeftRail";
 import IncidentFeed from "@/components/rails/IncidentFeed";
+import AlertFeed from "@/components/rails/AlertFeed";
 import VesselDossierPanel from "@/components/rails/VesselDossier";
 import SignalTicker from "@/components/ticker/SignalTicker";
+import AlertTicker from "@/components/ticker/AlertTicker";
 import CongestionStrip from "@/components/ticker/CongestionStrip";
 import ReplayScrubber from "@/components/replay/ReplayScrubber";
 
@@ -35,7 +37,11 @@ export default function CommandCenter() {
           <VesselDossierPanel />
         </main>
 
-        <IncidentFeed />
+        {/* right rail: live threats (primary) over confirmed cases */}
+        <aside className="flex w-[340px] shrink-0 flex-col border-l border-hairline bg-panel">
+          <AlertFeed />
+          <IncidentFeed />
+        </aside>
       </div>
 
       {/* bottom strip */}
@@ -43,6 +49,7 @@ export default function CommandCenter() {
         <CongestionStrip />
         <ReplayScrubber />
       </div>
+      <AlertTicker />
       <SignalTicker />
     </div>
   );

@@ -59,7 +59,8 @@ COPY services/ ./services/
 RUN pip install --upgrade pip \
     && pip install \
         -e packages/contracts -e packages/common -e packages/geo \
-        -e services/ingestor -e services/api -e services/replay -e services/cognition
+        -e services/ingestor -e services/api -e services/replay -e services/cognition \
+        -e services/fleetscan
 
 COPY --from=webbuilder /web/out ./web_static
 COPY deploy/hf/start.sh ./start.sh

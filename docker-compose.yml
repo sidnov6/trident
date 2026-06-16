@@ -62,6 +62,18 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  fleetscan:
+    build:
+      context: .
+      dockerfile: services/fleetscan/Dockerfile
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
   api:
     build:
       context: .

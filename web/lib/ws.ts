@@ -16,6 +16,7 @@ import type {
   VesselLite,
   SignalLite,
   Incident,
+  FleetAlert,
 } from "./contracts";
 import { STATUS_BIT } from "./contracts";
 import type { RenderVessel, ZoneStat, TrailPoint, DarkPing } from "./types";
@@ -46,6 +47,7 @@ export interface FeedCallbacks {
   onSignal?: (s: SignalLite) => void;
   onIncident?: (i: Incident) => void;
   onZoneStats?: (z: ZoneStat) => void;
+  onAlert?: (a: FleetAlert) => void;
   onStatus?: (online: boolean) => void;
   onMsg?: () => void; // any message — used for msgs/sec metering
 }
@@ -152,6 +154,14 @@ export class TridentFeed {
       case "incident":
         this.cbs.onIncident?.(msg.incident);
         this.spawnPingForIncident(msg.incident);
+        break;
+      case "fleet_alert":
+        this.cbs.onAlert?.(msg.alert);
+        // a severe new threat gets a pulsing ring on the map
+        if (msg.alert.severity >= 0.7) {
+          const [lat, lon] = msg.alert.position;
+          this.pings.push({ id: `a${msg.alert.id}`, lon, lat, born: Date.now() });
+        }
         break;
       case "zone_stats":
         this.cbs.onZoneStats?.({

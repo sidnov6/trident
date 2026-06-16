@@ -75,11 +75,14 @@ INGESTOR_PID=$!
 log "starting cognition (Groq swarm)..."
 python -m cognition.main &
 COGNITION_PID=$!
+log "starting fleetscan (global fleet threat agents)..."
+python -m fleetscan.main &
+FLEETSCAN_PID=$!
 log "starting replay (forensics, internal :8100)..."
 uvicorn replay.main:app --host 0.0.0.0 --port 8100 &
 REPLAY_PID=$!
 
-trap 'log "shutting down"; kill $INGESTOR_PID $COGNITION_PID $REPLAY_PID 2>/dev/null' EXIT
+trap 'log "shutting down"; kill $INGESTOR_PID $COGNITION_PID $FLEETSCAN_PID $REPLAY_PID 2>/dev/null' EXIT
 
 # ── gateway (foreground) — serves UI + REST + WS on the single exposed port ──
 log "starting api on :${PORT} (UI + REST + WS)..."

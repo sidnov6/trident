@@ -128,6 +128,10 @@ export default function MapView() {
       },
       onSignal: (s) => pushSignal(s),
       onZoneStats: (z) => setZone(z),
+      onAlert: (a) => {
+        const st = useStore.getState();
+        if (!st.mutedCategories[a.category]) st.pushAlert(a);
+      },
     });
     feedRef.current = feed;
     feed.start();

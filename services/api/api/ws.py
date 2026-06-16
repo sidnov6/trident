@@ -38,10 +38,12 @@ from typing import Any, Optional
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from trident_common import keys
+from trident_contracts.fleet_alert import FleetAlert
 from trident_contracts.incident import Incident
 from trident_contracts.signal import Signal, SignalLite
 from trident_contracts.vessel import VesselLite
 from trident_contracts.ws import (
+    FleetAlertMsg,
     IncidentMsg,
     SignalTickMsg,
     VesselDeltaMsg,
@@ -146,9 +148,11 @@ class StreamFanout:
             return
         await self._ensure_group(keys.STREAM_SIGNALS)
         await self._ensure_group(keys.STREAM_INCIDENTS)
+        await self._ensure_group(keys.STREAM_FLEET_ALERTS)
         self._tasks = [
             asyncio.create_task(self._tail_signals(), name="ws-tail-signals"),
             asyncio.create_task(self._tail_incidents(), name="ws-tail-incidents"),
+            asyncio.create_task(self._tail_alerts(), name="ws-tail-alerts"),
         ]
 
     async def stop(self) -> None:
@@ -235,6 +239,30 @@ class StreamFanout:
                     try:
                         await self._redis.xack(
                             keys.STREAM_INCIDENTS, keys.CONSUMER_GROUP_API, msg_id
+                        )
+                    except Exception:  # pragma: no cover
+                        pass
+
+    async def _tail_alerts(self) -> None:
+        """Relay fleetscan FleetAlerts to every client as `fleet_alert` frames."""
+        while not self._stop.is_set():
+            try:
+                msgs = await self._read_group(keys.STREAM_FLEET_ALERTS)
+            except Exception as exc:  # pragma: no cover - transient redis
+                log.warning("fleet-alert tail XREADGROUP failed (%s)", exc)
+                await asyncio.sleep(1.0)
+                continue
+            for msg_id, fields in msgs:
+                try:
+                    alert = FleetAlert.from_stream_fields(fields)
+                    frame = FleetAlertMsg(alert=alert).model_dump(mode="json")
+                    self._broadcast(frame)
+                except Exception:
+                    log.debug("bad fleet alert frame %s", msg_id, exc_info=True)
+                finally:
+                    try:
+                        await self._redis.xack(
+                            keys.STREAM_FLEET_ALERTS, keys.CONSUMER_GROUP_API, msg_id
                         )
                     except Exception:  # pragma: no cover
                         pass

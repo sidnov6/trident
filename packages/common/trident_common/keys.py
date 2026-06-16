@@ -8,8 +8,10 @@ from __future__ import annotations
 # --- Redis Streams (the event bus) --------------------------------------
 STREAM_SIGNALS = "trident:signals"        # detectors -> cognition + api ticker
 STREAM_INCIDENTS = "trident:incidents"    # cognition -> api (push to UI)
+STREAM_FLEET_ALERTS = "trident:fleet_alerts"  # fleetscan -> api ticker/feed
 CONSUMER_GROUP_COGNITION = "cognition"
 CONSUMER_GROUP_API = "api"
+CONSUMER_GROUP_API_FLEET = "api_fleet"     # api consumer for the fleet-alert stream
 
 # --- Redis hot state -----------------------------------------------------
 def vessel_key(mmsi: int) -> str:
@@ -36,6 +38,17 @@ def zone_count_key(zone: str) -> str:
 
 
 WATCHLIST_PRIORITY = "watchlist:priority"   # SADD MMSIs an analyst flagged
+WATCHLIST_META = "watchlist:meta"           # HSET {mmsi -> json: category, reason, flagged_ts}
+
+
+def fleet_track_key(mmsi: int) -> str:
+    """Capped breadcrumb LIST 'ts,lat,lon' for a FLAGGED vessel (path/origin)."""
+    return f"fleet:track:{mmsi}"
+
+
+def fleet_cooldown_key(mmsi: int, category: str) -> str:
+    """Per-(mmsi, category) dedupe key so one ship can't spam the ticker."""
+    return f"fleet:cd:{mmsi}:{category}"
 
 # vessel TTL — vessels that vanish age out after 30 min
 VESSEL_TTL_S = 1800

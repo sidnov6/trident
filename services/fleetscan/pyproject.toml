@@ -1,0 +1,19 @@
+[project]
+name = "trident-fleetscan"
+version = "1.0.0"
+description = "Always-on deterministic global fleet threat scanner for TRIDENT"
+requires-python = ">=3.12"
+dependencies = [
+    "redis>=5",
+    "pydantic>=2.6",
+    "trident-contracts",
+    "trident-common",
+    "trident-geo",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["fleetscan*"]

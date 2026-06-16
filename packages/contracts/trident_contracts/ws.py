@@ -9,6 +9,7 @@ from typing import Literal, Union
 
 from pydantic import BaseModel, Field
 
+from .fleet_alert import FleetAlert
 from .incident import Incident
 from .signal import SignalLite
 from .vessel import VesselLite
@@ -30,6 +31,11 @@ class IncidentMsg(BaseModel):
     incident: Incident
 
 
+class FleetAlertMsg(BaseModel):
+    kind: Literal["fleet_alert"] = "fleet_alert"
+    alert: FleetAlert
+
+
 class ZoneStatsMsg(BaseModel):
     kind: Literal["zone_stats"] = "zone_stats"
     zone: str
@@ -39,4 +45,6 @@ class ZoneStatsMsg(BaseModel):
     threat_level: str = "GREEN"    # ThreatLevel value
 
 
-WSMessage = Union[VesselDeltaMsg, SignalTickMsg, IncidentMsg, ZoneStatsMsg]
+WSMessage = Union[
+    VesselDeltaMsg, SignalTickMsg, IncidentMsg, ZoneStatsMsg, FleetAlertMsg
+]
