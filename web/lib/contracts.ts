@@ -164,6 +164,18 @@ export interface VesselDossier {
   last_fix_ts?: number | null;
   track: [number, number, number][]; // (ts, lat, lon)
   incident_ids: string[];
+  // Phase 2 investigate enrichment
+  lat?: number | null;
+  lon?: number | null;
+  sog?: number | null;
+  cog?: number | null;
+  heading?: number | null;
+  course_compass?: string | null;
+  origin?: [number, number, number] | null;
+  flag_of_convenience?: boolean;
+  on_watchlist?: boolean;
+  watch_category?: ThreatCategory | null;
+  watch_reason?: string | null;
 }
 
 export type WSMessage =

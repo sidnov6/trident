@@ -15,6 +15,9 @@ interface UIState {
   dossierMmsi: number | null;
   flyTo: { lon: number; lat: number; zoom?: number; ts: number } | null;
   replayMode: boolean;
+  // investigate: the ship whose path/heading is drawn on the map
+  selectedVesselMmsi: number | null;
+  selectedTrack: [number, number, number][]; // (ts, lat, lon) — the traveled path
 
   // live data
   incidents: Incident[];
@@ -48,6 +51,9 @@ interface UIState {
   setViewportBbox: (b: [number, number, number, number]) => void;
   pushAlert: (a: FleetAlert) => void;
   toggleCategory: (c: ThreatCategory) => void;
+  investigate: (mmsi: number, lat: number, lon: number) => void;
+  setSelectedTrack: (t: [number, number, number][]) => void;
+  clearSelectedVessel: () => void;
 }
 
 export const useStore = create<UIState>((set) => ({
@@ -56,6 +62,8 @@ export const useStore = create<UIState>((set) => ({
   dossierMmsi: null,
   flyTo: null,
   replayMode: false,
+  selectedVesselMmsi: null,
+  selectedTrack: [],
 
   incidents: [],
   signals: [],
@@ -71,7 +79,8 @@ export const useStore = create<UIState>((set) => ({
 
   setSelectedZone: (z) => set({ selectedZone: z }),
   selectIncident: (id) => set({ selectedIncidentId: id }),
-  openDossier: (mmsi) => set({ dossierMmsi: mmsi }),
+  openDossier: (mmsi) =>
+    set({ dossierMmsi: mmsi, selectedVesselMmsi: mmsi, selectedTrack: [] }),
   requestFlyTo: (lon, lat, zoom) =>
     set({ flyTo: { lon, lat, zoom, ts: Date.now() } }),
   setReplayMode: (on) => set({ replayMode: on }),
@@ -121,4 +130,18 @@ export const useStore = create<UIState>((set) => ({
 
   toggleCategory: (c) =>
     set((s) => ({ mutedCategories: { ...s.mutedCategories, [c]: !s.mutedCategories[c] } })),
+
+  // Fly to a ship, open its dossier, and mark it selected so the map draws its
+  // path + heading. The dossier fetch fills selectedTrack.
+  investigate: (mmsi, lat, lon) =>
+    set({
+      flyTo: { lon, lat, zoom: 8.5, ts: Date.now() },
+      dossierMmsi: mmsi,
+      selectedVesselMmsi: mmsi,
+      selectedTrack: [],
+      selectedIncidentId: null,
+    }),
+  setSelectedTrack: (t) => set({ selectedTrack: t }),
+  clearSelectedVessel: () =>
+    set({ selectedVesselMmsi: null, selectedTrack: [], dossierMmsi: null }),
 }));

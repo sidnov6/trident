@@ -7,6 +7,7 @@ import {
   ScatterplotLayer,
   PolygonLayer,
   ArcLayer,
+  PathLayer,
 } from "@deck.gl/layers";
 import { TripsLayer } from "@deck.gl/geo-layers";
 import { HeatmapLayer } from "@deck.gl/aggregation-layers";
@@ -28,6 +29,8 @@ export interface LayerInput {
   nowMs: number;
   zoom: number;
   selectedMmsi: number | null;
+  selectedTrack?: [number, number, number][]; // (ts, lat, lon) traveled path
+  selectedHeadingCog?: number | null;         // live course of the selected ship
   onVesselClick: (mmsi: number) => void;
 }
 
@@ -100,6 +103,8 @@ export function buildLayers(input: LayerInput): Layer[] {
     nowMs,
     zoom,
     selectedMmsi,
+    selectedTrack,
+    selectedHeadingCog,
     onVesselClick,
   } = input;
 
@@ -299,6 +304,53 @@ export function buildLayers(input: LayerInput): Layer[] {
           getColor: selectedMmsi,
           getSize: [selectedMmsi, iconSize],
         },
+      })
+    );
+  }
+
+  // 7. Selected-ship investigation overlay (single feature — guarded, so it never
+  //    touches the thousands-of-dots layers). Drawn on top: traveled path (red),
+  //    origin "departed here" ring (green), and a big heading chevron.
+  if (selectedTrack && selectedTrack.length >= 2) {
+    const path = selectedTrack.map((p) => [p[2], p[1]] as [number, number]);
+    const origin = selectedTrack[0];
+    const head = selectedTrack[selectedTrack.length - 1];
+    layers.push(
+      new PathLayer<{ path: [number, number][] }>({
+        id: "selected-path",
+        data: [{ path }],
+        getPath: (d) => d.path,
+        getColor: [220, 38, 38, 220],
+        getWidth: 2.5,
+        widthUnits: "pixels",
+        capRounded: true,
+        jointRounded: true,
+      }),
+      new ScatterplotLayer<{ p: [number, number] }>({
+        id: "selected-origin",
+        data: [{ p: [origin[2], origin[1]] }],
+        getPosition: (d) => d.p,
+        getFillColor: [22, 163, 74, 60],
+        getLineColor: [22, 163, 74, 255],
+        stroked: true,
+        getLineWidth: 2,
+        lineWidthUnits: "pixels",
+        getRadius: 7,
+        radiusUnits: "pixels",
+        radiusMinPixels: 6,
+      }),
+      new IconLayer<{ p: [number, number] }>({
+        id: "selected-heading",
+        data: [{ p: [head[2], head[1]] }],
+        iconAtlas: vesselArrowDataURI(),
+        iconMapping: vesselIconMapping(),
+        getIcon: () => "arrow",
+        getPosition: (d) => d.p,
+        getAngle: () => -(selectedHeadingCog ?? 0),
+        getSize: 34,
+        sizeUnits: "pixels",
+        getColor: [31, 95, 191, 255],
+        billboard: true,
       })
     );
   }

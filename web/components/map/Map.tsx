@@ -232,6 +232,7 @@ export default function MapView() {
       // building them entirely at the global scale.
       const manyVessels = vessels.length > 600;
       const selInc = st.incidents.find((i) => i.id === st.selectedIncidentId);
+      const selMmsi = st.selectedVesselMmsi ?? (selInc ? selInc.mmsi : null);
       const layers = buildLayers({
         vessels,
         trails: manyVessels ? [] : feed.getTrails(),
@@ -241,7 +242,9 @@ export default function MapView() {
         geo: geoRef.current,
         nowMs: Date.now(),
         zoom: zoomRef.current,
-        selectedMmsi: selInc ? selInc.mmsi : null,
+        selectedMmsi: selMmsi,
+        selectedTrack: st.selectedTrack,
+        selectedHeadingCog: selMmsi != null ? feed.getVessel(selMmsi)?.c ?? null : null,
         onVesselClick: (mmsi) => openDossier(mmsi),
       });
       overlay.setProps({ layers });

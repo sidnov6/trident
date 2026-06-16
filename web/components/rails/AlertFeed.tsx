@@ -25,9 +25,7 @@ export default function AlertFeed() {
   const counts = useStore((s) => s.alertCounts);
   const muted = useStore((s) => s.mutedCategories);
   const toggleCategory = useStore((s) => s.toggleCategory);
-  const requestFlyTo = useStore((s) => s.requestFlyTo);
-  const openDossier = useStore((s) => s.openDossier);
-  const selectIncident = useStore((s) => s.selectIncident);
+  const investigate = useStore((s) => s.investigate);
   const [bySeverity, setBySeverity] = useState(false);
 
   const visible = alerts.filter((a) => !muted[a.category]);
@@ -35,11 +33,9 @@ export default function AlertFeed() {
     ? [...visible].sort((a, b) => b.risk - a.risk)
     : visible;
 
-  function investigate(a: FleetAlert) {
+  function onInvestigate(a: FleetAlert) {
     const [lat, lon] = a.position;
-    requestFlyTo(lon, lat, 8.5);
-    openDossier(a.mmsi);
-    selectIncident(null);
+    investigate(a.mmsi, lat, lon);
   }
 
   return (
@@ -97,7 +93,7 @@ export default function AlertFeed() {
           return (
             <button
               key={a.id}
-              onClick={() => investigate(a)}
+              onClick={() => onInvestigate(a)}
               className="block w-full border-b border-hairline px-3 py-2 text-left transition-colors hover:bg-panel2"
               style={{ borderLeft: `3px solid ${meta.color}` }}
             >

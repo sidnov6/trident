@@ -13,8 +13,7 @@ function headline(a: FleetAlert): string {
 export default function AlertTicker() {
   const alerts = useStore((s) => s.alerts);
   const muted = useStore((s) => s.mutedCategories);
-  const requestFlyTo = useStore((s) => s.requestFlyTo);
-  const openDossier = useStore((s) => s.openDossier);
+  const investigate = useStore((s) => s.investigate);
   const row = alerts.filter((a) => !muted[a.category]).slice(0, 30);
 
   return (
@@ -34,8 +33,7 @@ export default function AlertTicker() {
                 key={`${a.id}-${i}`}
                 onClick={() => {
                   const [lat, lon] = a.position;
-                  requestFlyTo(lon, lat, 8.5);
-                  openDossier(a.mmsi);
+                  investigate(a.mmsi, lat, lon);
                 }}
                 className="px-4 text-[11px] font-medium hover:underline"
                 style={{ color: THREAT_CATEGORY[a.category].color }}

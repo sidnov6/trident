@@ -77,3 +77,16 @@ class VesselDossier(BaseModel):
     last_fix_ts: Optional[float] = None
     track: list[tuple[float, float, float]] = Field(default_factory=list)  # (ts, lat, lon)
     incident_ids: list[str] = Field(default_factory=list)
+
+    # live kinematics + investigation enrichment (Phase 2)
+    lat: Optional[float] = None
+    lon: Optional[float] = None
+    sog: Optional[float] = None
+    cog: Optional[float] = None
+    heading: Optional[float] = None
+    course_compass: Optional[str] = None       # e.g. "SSW" — where it's heading
+    origin: Optional[tuple[float, float, float]] = None  # (ts, lat, lon) first known fix
+    flag_of_convenience: bool = False
+    on_watchlist: bool = False
+    watch_category: Optional[str] = None        # ThreatCategory if flagged
+    watch_reason: Optional[str] = None

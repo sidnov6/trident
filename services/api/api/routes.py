@@ -30,7 +30,12 @@ from trident_contracts.enums import ThreatLevel
 from trident_contracts.incident import Incident
 from trident_contracts.signal import SignalLite, SignalType
 from trident_contracts.vessel import VesselDossier, VesselLite
-from trident_geo import CHOKEPOINTS, flag_for_mmsi
+from trident_geo import (
+    CHOKEPOINTS,
+    cog_to_compass,
+    flag_for_mmsi,
+    is_flag_of_convenience,
+)
 
 from .threat import threat_for_zone
 
@@ -162,6 +167,13 @@ async def get_vessel(request: Request, mmsi: int) -> VesselDossier:
         dossier.beam = state.beam
         dossier.first_seen_ts = state.first_seen_ts or None
         dossier.last_fix_ts = state.last_fix_ts or None
+        # live kinematics + direction (Phase 2 investigate)
+        dossier.lat = state.lat
+        dossier.lon = state.lon
+        dossier.sog = state.sog
+        dossier.cog = state.cog
+        dossier.heading = state.heading
+        dossier.course_compass = cog_to_compass(state.cog)
 
     if pool is not None:
         try:
@@ -214,6 +226,45 @@ async def get_vessel(request: Request, mmsi: int) -> VesselDossier:
 
     if dossier.flag is None:
         dossier.flag = flag_for_mmsi(mmsi)
+    dossier.flag_of_convenience = is_flag_of_convenience(dossier.flag)
+
+    # Merge the fleet breadcrumb ring (the path for GLOBAL flagged vessels that
+    # have no PG track) + read the watchlist meta (why it was flagged).
+    if redis is not None:
+        from trident_common import keys as _k
+
+        try:
+            crumbs = await redis.lrange(_k.fleet_track_key(mmsi), 0, -1)
+        except Exception:
+            crumbs = []
+        bc: list[tuple[float, float, float]] = []
+        for c in crumbs or ():
+            if isinstance(c, bytes):
+                c = c.decode()
+            parts = c.split(",")
+            if len(parts) == 3:
+                try:
+                    bc.append((float(parts[0]), float(parts[1]), float(parts[2])))
+                except ValueError:
+                    continue
+        if bc:
+            merged = {round(t, 0): (t, la, lo) for (t, la, lo) in [*dossier.track, *bc]}
+            dossier.track = sorted(merged.values(), key=lambda p: p[0])
+        if dossier.track:
+            dossier.origin = dossier.track[0]
+        try:
+            on = await redis.sismember(_k.WATCHLIST_PRIORITY, str(mmsi))
+            dossier.on_watchlist = bool(on)
+            meta = await redis.hget(_k.WATCHLIST_META, str(mmsi))
+            if meta:
+                if isinstance(meta, bytes):
+                    meta = meta.decode()
+                m = json.loads(meta)
+                dossier.watch_category = m.get("category")
+                dossier.watch_reason = m.get("reason")
+        except Exception:
+            pass
+
     return dossier
 
 

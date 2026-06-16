@@ -13,12 +13,13 @@ from .chokepoints import (
     validate_boxes,
     zone_for_point,
 )
+from .compass import cog_to_compass
 from .flags import flag_for_mmsi, is_flag_of_convenience
 
 __all__ = [
     "CHOKEPOINTS", "CHOKEPOINTS_BY_ID", "CHOKEPOINT_BOXES", "Chokepoint",
     "near_edge", "validate_boxes", "zone_for_point",
-    "flag_for_mmsi", "is_flag_of_convenience",
+    "flag_for_mmsi", "is_flag_of_convenience", "cog_to_compass",
     "load_zone_geojson", "list_zone_files",
 ]
 
